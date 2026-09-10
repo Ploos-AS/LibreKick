@@ -6,8 +6,8 @@ import sys
 ROM_SIZE = 512 * 1024
 EXPECTED_SP = 0x0007FFFC
 EXPECTED_PC = 0x00F80008
-MARKER = b"LIBREKICK-M2.1B\0OVL-HANDOFF-LIBRARY-VECTOR\0"
-IDENT = b"exec.library\0LibreKick M2.1b ABI foundation 40.1\0"
+MARKER = b"LIBREKICK-M2.1C\0OVL-OFF-LIBRARY-VECTOR\0"
+IDENT = b"exec.library\0LibreKick M2.1c ABI foundation 40.1\0"
 PROBE = bytes.fromhex("203C4C4B56314E75")
 
 
@@ -25,13 +25,13 @@ assert len(data) == ROM_SIZE, f"wrong ROM size: {len(data)}"
 sp, pc = struct.unpack_from(">II", data, 0)
 assert sp == EXPECTED_SP, f"wrong reset SP: 0x{sp:08x}"
 assert pc == EXPECTED_PC, f"wrong reset PC: 0x{pc:08x}"
-assert data[0x100:0x100 + len(MARKER)] == MARKER, "missing M2.1b marker"
+assert data[0x100:0x100 + len(MARKER)] == MARKER, "missing M2.1c marker"
 assert data[0x180:0x180 + len(IDENT)] == IDENT, "missing exec.library identity"
 assert data[0x300:0x300 + len(PROBE)] == PROBE, "probe function mismatch"
 
 required = [
-    bytes.fromhex("08F9000000BFE001"),      # bset #0,CIAA_PRA (OVL latch high)
-    bytes.fromhex("08F9000000BFE201"),      # bset #0,CIAA_DDRA (PA0 output)
+    bytes.fromhex("13FC000300BFE201"),      # move.b #$03,CIAA_DDRA
+    bytes.fromhex("08B9000000BFE001"),      # bclr #0,CIAA_PRA: OVL off -> Chip RAM at $0
     bytes.fromhex("23FC0000210000000004"),  # SysBase -> $2100
     bytes.fromhex("33FC000600002110"),      # lib_NegSize = 6
     bytes.fromhex("33FC002200002112"),      # lib_PosSize = 34
@@ -53,5 +53,5 @@ for off in range(0, ROM_SIZE, 4):
 total = (total & 0xFFFFFFFF) + (total >> 32)
 assert total == 0xFFFFFFFF, f"bad ROM checksum: 0x{total:08x}"
 
-print(f"M2.1b check PASS: {p} ({len(data)} bytes)")
-print(f"reset SP=0x{sp:08x} PC=0x{pc:08x}; OVL handoff; vector=-6(a6); red-before/green-after; checksum=0x{total:08x}")
+print(f"M2.1c check PASS: {p} ({len(data)} bytes)")
+print(f"reset SP=0x{sp:08x} PC=0x{pc:08x}; OVL off; vector=-6(a6); red-before/green-after; checksum=0x{total:08x}")
