@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.1a: Library-layout and negative-vector ABI diagnostics."""
+"""Build LibreKick M2.1b: Library ABI vector test with explicit OVL handoff."""
 from pathlib import Path
 import struct
 import sys
@@ -14,6 +14,8 @@ PROBE_FUNC = ROM_BASE + 0x300
 PROBE_RESULT_ADDR = 0x00001040
 PROBE_MAGIC = 0x4C4B5631  # LKV1
 COLOR00 = 0x00DFF180
+CIAA_PRA = 0x00BFE001
+CIAA_DDRA = 0x00BFE201
 IDSTRING_ADDR = ROM_BASE + 0x180
 
 
@@ -23,6 +25,11 @@ def ml_imm_abs(value: int, address: int) -> bytes:
 
 def mw_imm_abs(value: int, address: int) -> bytes:
     return b"\x33\xfc" + struct.pack(">H", value) + struct.pack(">I", address)
+
+
+def bset0_abs(address: int) -> bytes:
+    # bset #0,(abs.l) -- byte operation on CIA register.
+    return bytes.fromhex("08F90000") + struct.pack(">I", address)
 
 
 def ones_add32(total: int, value: int) -> int:
@@ -36,6 +43,13 @@ def build() -> bytearray:
 
     code = bytearray()
     code += bytes.fromhex("46FC2700")  # move.w #$2700,sr
+
+    # Explicitly hand low memory back to chip RAM before any RAM-resident
+    # library vector is fetched as code. Set the OVL data latch high first,
+    # then make CIAA PA0 an output.
+    code += bset0_abs(CIAA_PRA)
+    code += bset0_abs(CIAA_DDRA)
+
     code += ml_imm_abs(EXEC_BASE, 0x00000004)  # canonical SysBase pointer
 
     # struct Library-compatible positive region at EXEC_BASE.
@@ -52,26 +66,26 @@ def build() -> bytearray:
     code += ml_imm_abs(0, EXEC_BASE + 28)      # lib_Sum
     code += mw_imm_abs(0, EXEC_BASE + 32)      # lib_OpenCnt
 
-    # First real negative-vector mechanism: JMP absolute at -6(a6).
+    # Six-byte Amiga-style negative vector: JMP absolute at -6(a6).
     code += ml_imm_abs(0x4EF900F8, PROBE_VECTOR)
     code += mw_imm_abs(PROBE_FUNC & 0xFFFF, PROBE_VECTOR + 4)
 
-    # Diagnostic checkpoint: red means initialization reached the vector call.
+    # Diagnostic checkpoint: red means OVL handoff + init + vector install passed.
     code += mw_imm_abs(0x0F00, COLOR00)
 
-    # Call the vector through A6 exactly as an Amiga library client does.
-    code += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)  # lea EXEC_BASE,a6
-    code += bytes.fromhex("4EAEFFFA")                    # jsr -6(a6)
-    code += b"\x23\xc0" + struct.pack(">I", PROBE_RESULT_ADDR)  # move.l d0,abs.l
+    # Execute the RAM-resident negative vector through A6.
+    code += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)
+    code += bytes.fromhex("4EAEFFFA")
+    code += b"\x23\xc0" + struct.pack(">I", PROBE_RESULT_ADDR)
 
-    # Success checkpoint: green is written only after the negative vector returns.
+    # Green is reached only after a successful vector call and return.
     code += mw_imm_abs(0x00F0, COLOR00)
-    code += bytes.fromhex("60FE")                        # idle loop
+    code += bytes.fromhex("60FE")
     image[8:8 + len(code)] = code
 
-    marker = b"LIBREKICK-M2.1A\0LIBRARY-ABI-VECTOR-DIAGNOSTIC\0"
+    marker = b"LIBREKICK-M2.1B\0OVL-HANDOFF-LIBRARY-VECTOR\0"
     image[0x100:0x100 + len(marker)] = marker
-    ident = b"exec.library\0LibreKick M2.1a ABI foundation 40.1\0"
+    ident = b"exec.library\0LibreKick M2.1b ABI foundation 40.1\0"
     image[0x180:0x180 + len(ident)] = ident
 
     probe = b"\x20\x3c" + struct.pack(">I", PROBE_MAGIC) + b"\x4e\x75"
@@ -92,7 +106,7 @@ def main() -> None:
     out = Path(sys.argv[1])
     image = build()
     out.write_bytes(image)
-    print(f"M2.1a ROM built: {out} ({len(image)} bytes)")
+    print(f"M2.1b ROM built: {out} ({len(image)} bytes)")
 
 
 if __name__ == "__main__":
