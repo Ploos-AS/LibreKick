@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.4: complete basic Exec doubly-linked list primitive slice."""
+"""Build LibreKick M2.4a: complete basic Exec list API with runtime checkpoints."""
 from pathlib import Path
 import struct, sys
 
@@ -68,7 +68,6 @@ def build():
     c += bclr0(CIAA_PRA)
     c += ml(EXEC_BASE, 4)
 
-    # struct Library-compatible header; negative space reaches RemTail(-264).
     c += ml(0, EXEC_BASE + 0)
     c += ml(0, EXEC_BASE + 4)
     c += mw(0x0900, EXEC_BASE + 8)
@@ -96,15 +95,20 @@ def build():
         c += ml(0, node + 0)
         c += ml(0, node + 4)
 
-    c += mw(0x0f00, COLOR00)
+    # Checkpoint colours identify the next call that fails to return.
+    c += mw(0x0f00, COLOR00)  # red: before AddTail(node1)
     c += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)
 
-    for node in (NODE1, NODE2):
-        c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
-        c += b"\x43\xf9" + struct.pack(">I", node)
-        c += bytes.fromhex("4EAEFF0A")
+    c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
+    c += b"\x43\xf9" + struct.pack(">I", NODE1)
+    c += bytes.fromhex("4EAEFF0A")
 
-    # Insert node3 after node1 -> [node1,node3,node2].
+    c += mw(0x0ff0, COLOR00)  # yellow: AddTail1 returned; before AddTail2
+    c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
+    c += b"\x43\xf9" + struct.pack(">I", NODE2)
+    c += bytes.fromhex("4EAEFF0A")
+
+    c += mw(0x00ff, COLOR00)  # cyan: AddTail2 returned; before Insert
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += b"\x43\xf9" + struct.pack(">I", NODE3)
     c += b"\x45\xf9" + struct.pack(">I", NODE1)
@@ -118,40 +122,42 @@ def build():
     failures += [cmp_abs(c, NODE2, NODE3 + 0)]
     failures += [cmp_abs(c, NODE3, NODE2 + 4)]
 
-    # Remove node3 -> [node1,node2].
+    c += mw(0x0f0f, COLOR00)  # magenta: Insert validated; before Remove
     c += b"\x43\xf9" + struct.pack(">I", NODE3)
     c += bytes.fromhex("4EAEFF04")
     failures += [cmp_abs(c, NODE2, NODE1 + 0)]
     failures += [cmp_abs(c, NODE1, NODE2 + 4)]
 
-    # RemTail -> node2; then node1; then NULL on empty list.
+    c += mw(0x0fff, COLOR00)  # white: Remove validated; before RemTail #1
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += bytes.fromhex("4EAEFEF8")
     failures += [cmp_d0(c, NODE2)]
     failures += [cmp_abs(c, NODE1, LIST_ADDR + 8)]
     failures += [cmp_abs(c, LIST_ADDR + 4, NODE1 + 0)]
 
+    c += mw(0x0f80, COLOR00)  # orange: first RemTail validated; before #2
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += bytes.fromhex("4EAEFEF8")
     failures += [cmp_d0(c, NODE1)]
     failures += [cmp_abs(c, LIST_ADDR + 4, LIST_ADDR + 0)]
     failures += [cmp_abs(c, LIST_ADDR + 0, LIST_ADDR + 8)]
 
+    c += mw(0x080f, COLOR00)  # violet: second RemTail validated; before empty #3
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += bytes.fromhex("4EAEFEF8")
     c += bytes.fromhex("4A80")
     failures += [bne_word(c)]
 
-    # Insert with NULL predecessor must be equivalent to head insertion.
+    c += mw(0x0888, COLOR00)  # grey: empty RemTail validated; before Insert(NULL)
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += b"\x43\xf9" + struct.pack(">I", NODE3)
-    c += bytes.fromhex("247C00000000")  # movea.l #0,a2
+    c += bytes.fromhex("247C00000000")
     c += bytes.fromhex("4EAEFF16")
     failures += [cmp_abs(c, NODE3, LIST_ADDR + 0)]
     failures += [cmp_abs(c, LIST_ADDR + 4, NODE3 + 0)]
     failures += [cmp_abs(c, LIST_ADDR, NODE3 + 4)]
 
-    # Remove the head-inserted node via the already-qualified RemHead.
+    c += mw(0x008f, COLOR00)  # azure: Insert(NULL) validated; before RemHead cleanup
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += bytes.fromhex("4EAEFEFE")
     failures += [cmp_d0(c, NODE3)]
@@ -160,10 +166,10 @@ def build():
     c += bytes.fromhex("4A80")
     failures += [bne_word(c)]
 
-    c += mw(0x00f0, COLOR00)
+    c += mw(0x00f0, COLOR00)  # green: complete M2.4a semantic PASS
     done_branch = bra_word(c)
     fail = len(c)
-    c += mw(0x000f, COLOR00)
+    c += mw(0x000f, COLOR00)  # blue: semantic assertion failure
     idle = len(c)
     c += bytes.fromhex("60FE")
 
@@ -262,4 +268,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         raise SystemExit("usage: make_m2_4_rom.py OUTPUT")
     out = Path(sys.argv[1]); data = build(); out.write_bytes(data)
-    print(f"M2.4 ROM built: {out} ({len(data)} bytes)")
+    print(f"M2.4a ROM built: {out} ({len(data)} bytes)")
