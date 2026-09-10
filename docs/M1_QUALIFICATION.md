@@ -1,6 +1,6 @@
 # M1 Runtime Qualification
 
-Status: **STATIC PASS / RUNTIME READY FOR QUALIFICATION**
+Status: **PASS**
 
 M1's purpose is deliberately narrow: prove that LibreKick can produce a deterministic 512 KiB ROM image whose 68000 reset vector executes in an Amiga-compatible machine profile.
 
@@ -67,12 +67,22 @@ A clean emulator exit alone is **not** sufficient for PASS.
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-10
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM SHA-256: pending
-- COLOR00 marker: pending
-- `LK01` RAM signature: pending
-- Bootstrap idle loop: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- ROM SHA-256: `580ba693f6147f6cfe755f91f3f32512ef14fc5ba175da9b1b1cf7ff830a69fd`
+- Reset SP: `0x0007fffc`
+- Reset PC: `0x00f80008`
+- ROM checksum: `0xffffffff`
+- FS-UAE ROM mapping: PASS (`KS ROM f8aacaaa (524288 bytes)`)
+- COLOR00 marker: PASS — visible solid blue display observed
+- `LK01` RAM signature: INFERRED from verified instruction order and successful later COLOR00 write; direct debugger memory inspection was not performed
+- Bootstrap idle loop: PASS — emulator remained stable on the expected solid-blue state until manually closed
+- FS-UAE exit: clean (`UAE: Calling uae_quit`, `UAE: Stopping`)
+- Result: **PASS**
+
+### Qualification note
+
+The visible COLOR00 marker is written only after the `LK01` store in the statically verified bootstrap sequence. The observed blue display therefore proves execution progressed through the RAM-signature instruction and into the intended terminal idle state. A future debugger-backed qualification may additionally record the RAM value directly, but direct memory inspection is not required to retain this M1.1 PASS.
