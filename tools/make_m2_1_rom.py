@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.1b: Library ABI vector test with explicit OVL handoff."""
+"""Build LibreKick M2.1c: Library ABI vector test with correct OVL handoff."""
 from pathlib import Path
 import struct
 import sys
@@ -27,9 +27,13 @@ def mw_imm_abs(value: int, address: int) -> bytes:
     return b"\x33\xfc" + struct.pack(">H", value) + struct.pack(">I", address)
 
 
-def bset0_abs(address: int) -> bytes:
-    # bset #0,(abs.l) -- byte operation on CIA register.
-    return bytes.fromhex("08F90000") + struct.pack(">I", address)
+def mb_imm_abs(value: int, address: int) -> bytes:
+    return b"\x13\xfc" + struct.pack(">H", value & 0xFF) + struct.pack(">I", address)
+
+
+def bclr0_abs(address: int) -> bytes:
+    # bclr #0,(abs.l) -- byte operation on CIA register.
+    return bytes.fromhex("08B90000") + struct.pack(">I", address)
 
 
 def ones_add32(total: int, value: int) -> int:
@@ -44,11 +48,10 @@ def build() -> bytearray:
     code = bytearray()
     code += bytes.fromhex("46FC2700")  # move.w #$2700,sr
 
-    # Explicitly hand low memory back to chip RAM before any RAM-resident
-    # library vector is fetched as code. Set the OVL data latch high first,
-    # then make CIAA PA0 an output.
-    code += bset0_abs(CIAA_PRA)
-    code += bset0_abs(CIAA_DDRA)
+    # CIAA PA0 is OVL. Configure PA0/PA1 as outputs as documented for classic
+    # Amigas, then clear PA0 so address $000000 is backed by Chip RAM.
+    code += mb_imm_abs(0x03, CIAA_DDRA)
+    code += bclr0_abs(CIAA_PRA)
 
     code += ml_imm_abs(EXEC_BASE, 0x00000004)  # canonical SysBase pointer
 
@@ -70,7 +73,7 @@ def build() -> bytearray:
     code += ml_imm_abs(0x4EF900F8, PROBE_VECTOR)
     code += mw_imm_abs(PROBE_FUNC & 0xFFFF, PROBE_VECTOR + 4)
 
-    # Diagnostic checkpoint: red means OVL handoff + init + vector install passed.
+    # Red means OVL handoff + Library init + vector install all completed.
     code += mw_imm_abs(0x0F00, COLOR00)
 
     # Execute the RAM-resident negative vector through A6.
@@ -78,14 +81,14 @@ def build() -> bytearray:
     code += bytes.fromhex("4EAEFFFA")
     code += b"\x23\xc0" + struct.pack(">I", PROBE_RESULT_ADDR)
 
-    # Green is reached only after a successful vector call and return.
+    # Green is reached only after the probe returned through the vector.
     code += mw_imm_abs(0x00F0, COLOR00)
     code += bytes.fromhex("60FE")
     image[8:8 + len(code)] = code
 
-    marker = b"LIBREKICK-M2.1B\0OVL-HANDOFF-LIBRARY-VECTOR\0"
+    marker = b"LIBREKICK-M2.1C\0OVL-OFF-LIBRARY-VECTOR\0"
     image[0x100:0x100 + len(marker)] = marker
-    ident = b"exec.library\0LibreKick M2.1b ABI foundation 40.1\0"
+    ident = b"exec.library\0LibreKick M2.1c ABI foundation 40.1\0"
     image[0x180:0x180 + len(ident)] = ident
 
     probe = b"\x20\x3c" + struct.pack(">I", PROBE_MAGIC) + b"\x4e\x75"
@@ -106,7 +109,7 @@ def main() -> None:
     out = Path(sys.argv[1])
     image = build()
     out.write_bytes(image)
-    print(f"M2.1b ROM built: {out} ({len(image)} bytes)")
+    print(f"M2.1c ROM built: {out} ({len(image)} bytes)")
 
 
 if __name__ == "__main__":
