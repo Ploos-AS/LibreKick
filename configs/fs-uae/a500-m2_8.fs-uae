@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_8.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.8 qualifies sorted multi-chunk FreeMem and bidirectional coalescing.
+# Green means arbitrary-order A/C/B frees restored one 4 KiB free chunk.
