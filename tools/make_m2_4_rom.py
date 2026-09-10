@@ -82,14 +82,12 @@ def build():
     c += ml(0, EXEC_BASE + 28)
     c += mw(0, EXEC_BASE + 32)
 
-    # Public Exec list vectors: Insert/AddHead/AddTail/Remove/RemHead/RemTail.
     for offset, target in (
         (234, INSERT_FUNC), (240, ADDHEAD_FUNC), (246, ADDTAIL_FUNC),
         (252, REMOVE_FUNC), (258, REMHEAD_FUNC), (264, REMTAIL_FUNC),
     ):
         c += vector(target, EXEC_BASE - offset)
 
-    # NewList-equivalent empty List and three probe Nodes.
     c += ml(LIST_ADDR + 4, LIST_ADDR + 0)
     c += ml(0, LIST_ADDR + 4)
     c += ml(LIST_ADDR + 0, LIST_ADDR + 8)
@@ -98,20 +96,19 @@ def build():
         c += ml(0, node + 0)
         c += ml(0, node + 4)
 
-    c += mw(0x0f00, COLOR00)  # red while semantic probe is running
-    c += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)  # A6=SysBase
+    c += mw(0x0f00, COLOR00)
+    c += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)
 
-    # AddTail(node1), AddTail(node2).
     for node in (NODE1, NODE2):
         c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
         c += b"\x43\xf9" + struct.pack(">I", node)
-        c += bytes.fromhex("4EAEFF0A")  # -246(a6)
+        c += bytes.fromhex("4EAEFF0A")
 
     # Insert node3 after node1 -> [node1,node3,node2].
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += b"\x43\xf9" + struct.pack(">I", NODE3)
     c += b"\x45\xf9" + struct.pack(">I", NODE1)
-    c += bytes.fromhex("4EAEFF16")  # -234(a6)
+    c += bytes.fromhex("4EAEFF16")
 
     failures = []
     failures += [cmp_abs(c, NODE1, LIST_ADDR + 0)]
@@ -123,7 +120,7 @@ def build():
 
     # Remove node3 -> [node1,node2].
     c += b"\x43\xf9" + struct.pack(">I", NODE3)
-    c += bytes.fromhex("4EAEFF04")  # -252(a6)
+    c += bytes.fromhex("4EAEFF04")
     failures += [cmp_abs(c, NODE2, NODE1 + 0)]
     failures += [cmp_abs(c, NODE1, NODE2 + 4)]
 
@@ -142,19 +139,39 @@ def build():
 
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += bytes.fromhex("4EAEFEF8")
-    c += bytes.fromhex("4A80")  # tst.l d0
+    c += bytes.fromhex("4A80")
     failures += [bne_word(c)]
 
-    c += mw(0x00f0, COLOR00)  # green: all semantics passed
+    # Insert with NULL predecessor must be equivalent to head insertion.
+    c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
+    c += b"\x43\xf9" + struct.pack(">I", NODE3)
+    c += bytes.fromhex("247C00000000")  # movea.l #0,a2
+    c += bytes.fromhex("4EAEFF16")
+    failures += [cmp_abs(c, NODE3, LIST_ADDR + 0)]
+    failures += [cmp_abs(c, LIST_ADDR + 4, NODE3 + 0)]
+    failures += [cmp_abs(c, LIST_ADDR, NODE3 + 4)]
+
+    # Remove the head-inserted node via the already-qualified RemHead.
+    c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
+    c += bytes.fromhex("4EAEFEFE")
+    failures += [cmp_d0(c, NODE3)]
+    c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
+    c += bytes.fromhex("4EAEFEFE")
+    c += bytes.fromhex("4A80")
+    failures += [bne_word(c)]
+
+    c += mw(0x00f0, COLOR00)
     done_branch = bra_word(c)
     fail = len(c)
-    c += mw(0x000f, COLOR00)  # blue: a semantic assertion failed
+    c += mw(0x000f, COLOR00)
     idle = len(c)
     c += bytes.fromhex("60FE")
 
     for pos in failures:
         patch_word_branch(c, pos, fail)
     patch_word_branch(c, done_branch, idle)
+    if 8 + len(c) > 0x0800:
+        raise ValueError("bootstrap overlaps routine area")
     image[8:8 + len(c)] = c
 
     marker = b"LIBREKICK-M2.4\0EXEC-BASIC-LIST-API\0"
@@ -162,68 +179,66 @@ def build():
     image[MARKER_OFF:MARKER_OFF + len(marker)] = marker
     image[IDENT_OFF:IDENT_OFF + len(ident)] = ident
 
-    # Insert(A0=list,A1=node,A2=pred), no return. Preserve D0/A0/A1/A2.
     insert = bytes.fromhex(
-        "2F002F082F092F0A"      # save d0/a0/a1/a2
-        "4A8A"                  # tst.l a2
-        "6712"                  # beq.s head
-        "2012"                  # d0=pred->succ
-        "2280"                  # node->succ=d0
-        "234A0004"              # node->pred=pred
-        "2040"                  # a0=successor
-        "21490004"              # successor->pred=node
-        "2489"                  # pred->succ=node
-        "600E"                  # bra.s done
-        "2010"                  # head: d0=list->head
-        "2280"                  # node->succ=d0
-        "23480004"              # node->pred=list
-        "2440"                  # a2=old head/sentinel
-        "25490004"              # old head->pred=node
-        "2089"                  # list->head=node
-        "245F225F205F201F4E75"  # done: restore a2/a1/a0/d0; rts
+        "2F002F082F092F0A"
+        "4A8A"
+        "6712"
+        "2012"
+        "2280"
+        "234A0004"
+        "2040"
+        "21490004"
+        "2489"
+        "6010"
+        "2010"
+        "2280"
+        "23480004"
+        "2440"
+        "25490004"
+        "2089"
+        "245F225F205F201F4E75"
     )
-    # Qualified M2.3 AddHead/RemHead implementations are retained unchanged.
     addhead = bytes.fromhex(
         "2F002F082F092010228023480004204021490004206F00042089225F205F201F4E75"
     )
     addtail = bytes.fromhex(
-        "2F002F082F09"          # save d0/a0/a1
-        "20280008"              # d0=list->tailpred
-        "41E80004"              # a0=&list->tail
-        "2288"                  # node->succ=&tail
-        "23400004"              # node->pred=d0
-        "2040"                  # a0=old tailpred
-        "2089"                  # old tailpred->succ=node
-        "206F0004"              # restore list pointer into a0
-        "21490008"              # list->tailpred=node
-        "225F205F201F4E75"      # restore a1/a0/d0; rts
+        "2F002F082F09"
+        "20280008"
+        "41E80004"
+        "2288"
+        "23400004"
+        "2040"
+        "2089"
+        "206F0004"
+        "21490008"
+        "225F205F201F4E75"
     )
     remove = bytes.fromhex(
-        "2F002F012F082F09"      # save d0/d1/a0/a1
-        "20290004"              # d0=node->pred
-        "2211"                  # d1=node->succ
-        "2040"                  # a0=pred
-        "2081"                  # pred->succ=succ
-        "2041"                  # a0=succ
-        "21400004"              # succ->pred=pred
-        "225F205F221F201F4E75"  # restore; rts
+        "2F002F012F082F09"
+        "20290004"
+        "2211"
+        "2040"
+        "2081"
+        "2041"
+        "21400004"
+        "225F205F221F201F4E75"
     )
     remhead = bytes.fromhex(
         "2F012F082F09201022402211670A208122412348000460027000225F205F221F4E75"
     )
     remtail = bytes.fromhex(
-        "2F012F082F09"          # save d1/a0/a1
-        "20280008"              # d0=list->tailpred
-        "2240"                  # a1=d0
-        "22290004"              # d1=node->pred; zero iff empty sentinel
-        "670E"                  # beq.s empty
-        "21410008"              # list->tailpred=d1
-        "2241"                  # a1=pred
-        "41E80004"              # a0=&list->tail
-        "2288"                  # pred->succ=&tail
-        "6002"                  # bra.s done
-        "7000"                  # empty: d0=0
-        "225F205F221F4E75"      # done: restore a1/a0/d1; rts
+        "2F012F082F09"
+        "20280008"
+        "2240"
+        "22290004"
+        "670E"
+        "21410008"
+        "2241"
+        "41E80004"
+        "2288"
+        "6002"
+        "7000"
+        "225F205F221F4E75"
     )
 
     routines = [
