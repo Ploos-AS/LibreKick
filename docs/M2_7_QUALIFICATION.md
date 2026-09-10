@@ -1,6 +1,6 @@
 # M2.7 Exec MemHeader/MemChunk Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.7 replaces the artificial two-block M2.6 pool with the first real Exec-style free-memory structure:
 
@@ -60,10 +60,13 @@ Target: FS-UAE A500 / 68000. Runtime PASS requires a stable green screen and nor
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-10
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- FS-UAE ROM identifier: `f73d2f83`
+- Static checker: **PASS** — `Exec AllocMem/FreeMem/AvailMem; one-region MemHeader/MemChunk split+coalesce slice; checksum=0xffffffff`
+- Diagnostic screen: stable **green** (`$0F0`)
+- Emulator exit: normal (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
