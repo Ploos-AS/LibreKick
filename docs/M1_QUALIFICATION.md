@@ -1,6 +1,6 @@
 # M1 Runtime Qualification
 
-Status: **STATIC PASS / RUNTIME PENDING**
+Status: **STATIC PASS / RUNTIME READY FOR QUALIFICATION**
 
 M1's purpose is deliberately narrow: prove that LibreKick can produce a deterministic 512 KiB ROM image whose 68000 reset vector executes in an Amiga-compatible machine profile.
 
@@ -33,7 +33,21 @@ The ROM does **not** provide Exec, DOS, Intuition, a filesystem, or AmigaOS 3.1 
 
 ## FS-UAE qualification
 
-Build first, then launch from the repository root:
+The preferred qualification entry point is:
+
+```sh
+make qualify-m1
+```
+
+This invokes `tools/qualify_m1_fsuae.sh`, which:
+
+- rebuilds and runs the static gate;
+- records the ROM SHA-256 under `build/m1-runtime/`;
+- records the FS-UAE version;
+- launches `configs/fs-uae/a500-m1.fs-uae` visibly;
+- captures FS-UAE output and exit status for the qualification record.
+
+The equivalent manual sequence is:
 
 ```sh
 make clean
@@ -46,10 +60,10 @@ Runtime PASS requires all of the following to be observed on a 68000-class A500 
 - emulator accepts and maps the 512 KiB image;
 - CPU reaches `0x00f80008` without reset-loop or illegal-instruction failure;
 - `COLOR00` changes to the expected debug value;
-- memory inspection shows `0x4c4b3031` at `0x00001000`;
+- memory inspection shows `0x4c4b3031` at `0x00001000` when debugger/memory inspection is available;
 - CPU remains in the intentional bootstrap loop.
 
-Record emulator version, host, profile and observed evidence below when qualification is performed.
+A clean emulator exit alone is **not** sufficient for PASS.
 
 ## Runtime record
 
@@ -60,4 +74,5 @@ Record emulator version, host, profile and observed evidence below when qualific
 - ROM SHA-256: pending
 - COLOR00 marker: pending
 - `LK01` RAM signature: pending
+- Bootstrap idle loop: pending
 - Result: **PENDING**
