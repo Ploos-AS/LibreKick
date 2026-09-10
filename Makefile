@@ -1,19 +1,25 @@
 PYTHON ?= python3
 BUILD_DIR := build
-ROM := $(BUILD_DIR)/librekick-m2_3.rom
+ROM := $(BUILD_DIR)/librekick-m2_4.rom
 
-.PHONY: all check clean m0 m1 m2 m2_1 m2_2 qualify-m1 qualify-m2 qualify-m2_1 qualify-m2_2 qualify-m2_3
+.PHONY: all check clean m0 m1 m2 m2_1 m2_2 m2_3 qualify-m1 qualify-m2 qualify-m2_1 qualify-m2_2 qualify-m2_3 qualify-m2_4
 
 all: $(ROM)
 
-$(ROM): tools/make_m2_3_rom.py
+$(ROM): tools/make_m2_4_rom.py
 	mkdir -p $(BUILD_DIR)
-	$(PYTHON) tools/make_m2_3_rom.py $@
+	$(PYTHON) tools/make_m2_4_rom.py $@
 
 check: $(ROM)
-	$(PYTHON) tools/check_m2_3.py $(ROM)
+	$(PYTHON) tools/check_m2_4.py $(ROM)
 
-qualify-m2_3: check
+qualify-m2_4: check
+	fs-uae configs/fs-uae/a500-m2_4.fs-uae
+
+qualify-m2_3:
+	mkdir -p $(BUILD_DIR)
+	$(PYTHON) tools/make_m2_3_rom.py $(BUILD_DIR)/librekick-m2_3.rom
+	$(PYTHON) tools/check_m2_3.py $(BUILD_DIR)/librekick-m2_3.rom
 	fs-uae configs/fs-uae/a500-m2_3.fs-uae
 
 qualify-m2_2:
@@ -36,6 +42,11 @@ qualify-m2:
 
 qualify-m1:
 	bash tools/qualify_m1_fsuae.sh
+
+m2_3:
+	mkdir -p $(BUILD_DIR)
+	$(PYTHON) tools/make_m2_3_rom.py $(BUILD_DIR)/librekick-m2_3.rom
+	$(PYTHON) tools/check_m2_3.py $(BUILD_DIR)/librekick-m2_3.rom
 
 m2_2:
 	mkdir -p $(BUILD_DIR)
