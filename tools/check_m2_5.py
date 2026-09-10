@@ -17,10 +17,14 @@ FUNCS = {
     258: 0x0900, 264: 0x0940, 270: 0x0A00, 276: 0x0A80,
 }
 
-
 def ones_add32(total, value):
     total += value
     return (total & 0xffffffff) + (total >> 32)
+
+def branch_word_target(data, opcode_off):
+    disp = struct.unpack_from(">h", data, opcode_off + 2)[0]
+    # Motorola 68000 Bcc.W/BRA.W uses PC = opcode address + 2.
+    return opcode_off + 2 + disp
 
 if len(sys.argv) != 2:
     raise SystemExit("usage: check_m2_5.py ROM")
@@ -54,7 +58,18 @@ assert bytes.fromhex("4A8A") not in data[0x0800:0x0B00], "illegal TST.L A2 regre
 assert bytes.fromhex("33FC00F000DFF180") in boot, "missing green PASS marker"
 assert bytes.fromhex("33FC000F00DFF180") in boot, "missing blue FAIL marker"
 
-# Strings used by FindName semantic qualification.
+# Regression for the M2.5 branch bug: locate the sentinel TST/BEQ inside
+# Enqueue and require the word branch to land exactly on the insert path.
+enqueue = data[0x0A00:0x0A80]
+needle = bytes.fromhex("4A806700")
+idx = enqueue.find(needle)
+assert idx >= 0, "missing Enqueue sentinel TST.L D0 / BEQ.W"
+beq_off = 0x0A00 + idx + 2
+target = branch_word_target(data, beq_off)
+assert data[target:target+10] == bytes.fromhex("244B33FC0F0F00DFF180"), (
+    f"Enqueue sentinel BEQ target wrong: 0x{target:04x}"
+)
+
 assert data[0x1400:0x1406] == b"alpha\0"
 assert data[0x1410:0x1415] == b"beta\0"
 assert data[0x1420:0x1428] == b"missing\0"
@@ -66,4 +81,4 @@ sum32 = (sum32 & 0xffffffff) + (sum32 >> 32)
 assert sum32 == 0xffffffff, f"bad ROM checksum: {sum32:08x}"
 
 print(f"M2.5 check PASS: {p} ({len(data)} bytes)")
-print("Exec Enqueue(-270)/FindName(-276); priority/FIFO + duplicate-name probe; checksum=0xffffffff")
+print("Exec Enqueue(-270)/FindName(-276); corrected 68000 Bcc.W PC base; checksum=0xffffffff")
