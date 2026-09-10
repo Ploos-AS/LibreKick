@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_7.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.7 qualifies the first MemHeader/MemChunk allocator slice on 68000.
+# Green means split/reuse/coalesce and AvailMem accounting passed.
