@@ -1,37 +1,37 @@
 # M2.1 Library ABI Foundation Qualification
 
-Status: **STATIC READY / M2.1B RUNTIME PENDING**
+Status: **STATIC READY / M2.1C RUNTIME PENDING**
 
 M2.1 replaces the private M2.0 descriptor with an Amiga-style `struct Library` positive region and a real negative-vector call mechanism. It deliberately does **not** claim complete `exec.library` ABI or semantic compatibility yet.
 
-## M2.1b diagnosis: low-memory ROM overlay
+## Diagnostic history
 
-The M2.1a run did not show either the red pre-call or green post-return marker. The important architectural difference from M2.0 is that M2.1 attempts to fetch executable code from the negative vector at low address `$000020fa`.
+M2.1a added red-before/green-after checkpoints around `JSR -6(a6)`.
 
-At reset, Amiga ROM overlay maps Kickstart into the low address range used for the initial vectors. M2.0 could write bookkeeping data to low RAM and continue executing from `$00f8xxxx` without ever fetching instructions from the low-memory vector. M2.1 is the first milestone that needs low memory to be readable as chip RAM code.
+M2.1b then added an explicit CIAA OVL handoff, but used the wrong polarity: `BSET #0,CIAA_PRA` leaves ROM overlay enabled. The observed red screen was therefore expected: bootstrap reached the pre-call checkpoint, but the CPU fetched the negative vector from the still-overlaid low ROM mapping instead of Chip RAM.
 
-M2.1b therefore performs an explicit CIAA OVL handoff before installing or calling the RAM-resident library vector:
+M2.1c corrects the handoff:
 
-1. set CIAA PRA bit 0 high (`$00bfe001`);
-2. configure CIAA DDRA bit 0 as an output (`$00bfe201`);
-3. only then create `SysBase`, the Library header and the negative vector in chip RAM.
+1. `MOVE.B #$03,CIAA_DDRA` configures PA0 (OVL) and PA1 as outputs;
+2. `BCLR #0,CIAA_PRA` clears OVL so Chip RAM is mapped at address `$000000`;
+3. LibreKick then installs the RAM-resident negative vector at `$000020fa` and calls it through A6.
 
-The ROM continues executing from its normal `$00f8xxxx` mapping while low memory becomes chip RAM.
+## M2.1c runtime path
 
-## M2.1b runtime checkpoints
+After reset LibreKick:
 
-After the OVL handoff LibreKick:
+1. enters supervisor mode with interrupts masked;
+2. disables the ROM overlay correctly;
+3. places the library base at `$00002100` and writes it to canonical `SysBase` location `$00000004`;
+4. initializes the `struct Library` foundation;
+5. installs a six-byte negative vector at `-6(a6)` containing `JMP $00f80300`;
+6. writes **red** (`COLOR00=$F00`) immediately before the call;
+7. executes `JSR -6(a6)`;
+8. the ROM probe returns `LKV1` (`$4c4b5631`) in D0;
+9. bootstrap stores D0 at `$00001040`;
+10. writes **green** (`COLOR00=$0F0`) and enters the final idle loop.
 
-1. writes `$00002100` to canonical `SysBase` location `$00000004`;
-2. initializes the documented `struct Library` header shape;
-3. installs a six-byte negative vector at `-6(a6)` containing `JMP $00f80300`;
-4. writes **red** (`COLOR00=$F00`) immediately before `JSR -6(a6)`;
-5. executes the RAM-resident negative vector through A6;
-6. the ROM probe returns `LKV1` (`$4c4b5631`) in D0;
-7. stores D0 at `$00001040`;
-8. writes **green** (`COLOR00=$0F0`) and enters the final idle loop.
-
-The `-6` vector remains a **LibreKick private probe** and is not claimed as a public Exec LVO.
+The `-6` vector remains a **LibreKick private probe**. It is not presented as a public Exec LVO.
 
 ## Static gate
 
@@ -40,7 +40,7 @@ make clean
 make check
 ```
 
-PASS requires the expected 512 KiB image, reset vectors, explicit CIAA OVL handoff instructions, Library fields, six-byte negative vector, `lea $2100,a6 ; jsr -6(a6)`, probe routine, red-before/green-after checkpoints, and final ROM checksum `$ffffffff`.
+PASS requires the expected 512 KiB image, reset vectors, correct CIAA `DDRA` + `BCLR OVL` sequence, Library fields, six-byte negative vector, `lea $2100,a6 ; jsr -6(a6)`, probe routine, red-before/green-after checkpoints, and final ROM checksum `$ffffffff`.
 
 ## Runtime gate
 
@@ -50,15 +50,15 @@ make qualify-m2_1
 
 Interpretation on A500/68000:
 
-- **green screen**: OVL handoff succeeded and the RAM vector returned; M2.1b runtime PASS;
-- **red screen**: OVL handoff and initialization succeeded, but the negative vector did not return;
-- any other stable colour/state: failure occurs before the red checkpoint and requires narrower early-bootstrap diagnosis.
+- **green screen**: corrected OVL handoff succeeded and the RAM vector returned; M2.1c runtime PASS;
+- **red screen**: low-memory handoff/init reached the call site, but the vector/probe did not return;
+- any other stable colour/state: failure before the pre-call checkpoint.
 
-When debugger inspection is available, stronger evidence is `$00000004 == $00002100` and `$00001040 == $4c4b5631` (`LKV1`).
+When debugger inspection is available, stronger evidence is `$00000004 == $00002100`, bytes `4e f9 00 f8 03 00` at `$000020fa`, and `$00001040 == $4c4b5631` (`LKV1`).
 
 ## Non-claims
 
-M2.1b does not yet provide scheduler semantics, memory allocation, signals, messages, interrupts, devices, DOS, Intuition, or a complete public Exec LVO table. It is an ABI-mechanism foundation, not an AmigaOS 3.1-compatible kernel milestone by itself.
+M2.1c does not yet provide scheduler semantics, memory allocation, signals, messages, interrupts, devices, DOS, Intuition, or a complete public Exec LVO table.
 
 ## Runtime record
 
