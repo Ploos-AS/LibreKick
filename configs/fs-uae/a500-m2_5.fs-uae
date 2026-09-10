@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_5.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.5 qualifies Enqueue/FindName on the 68000 A500 baseline.
+# Green means priority/FIFO ordering and name-search semantics passed.
