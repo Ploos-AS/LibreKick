@@ -2,7 +2,7 @@ PYTHON ?= python3
 BUILD_DIR := build
 ROM := $(BUILD_DIR)/librekick-m1.rom
 
-.PHONY: all check clean m0
+.PHONY: all check clean m0 qualify-m1
 
 all: $(ROM)
 
@@ -12,6 +12,9 @@ $(ROM): tools/make_m1_rom.py
 
 check: $(ROM)
 	$(PYTHON) tools/check_m1.py $(ROM)
+
+qualify-m1:
+	bash tools/qualify_m1_fsuae.sh
 
 m0:
 	mkdir -p $(BUILD_DIR)
