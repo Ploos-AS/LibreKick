@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_3.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.3 qualifies public Exec list primitives AddHead/RemHead on a stock
+# 68000-class A500 profile. Green screen means the semantic probe passed.
