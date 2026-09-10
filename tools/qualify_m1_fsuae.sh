@@ -7,8 +7,6 @@ ROM="build/librekick-m1.rom"
 LOGDIR="build/m1-runtime"
 LOG="$LOGDIR/fs-uae.log"
 
-mkdir -p "$LOGDIR"
-
 if ! command -v "$FSUAE_BIN" >/dev/null 2>&1; then
   echo "M1.1 BLOCKED: fs-uae not found (set FSUAE_BIN or install FS-UAE)" >&2
   exit 2
@@ -16,6 +14,11 @@ fi
 
 make clean
 make check
+
+# make clean removes build/, so create the runtime artifact directory only
+# after the clean/build gate has completed.
+mkdir -p "$LOGDIR"
+
 sha256sum "$ROM" | tee "$LOGDIR/rom.sha256"
 "$FSUAE_BIN" --version | tee "$LOGDIR/fs-uae-version.txt"
 
