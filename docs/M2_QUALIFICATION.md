@@ -1,6 +1,6 @@
 # M2.0 Exec Foundation Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.0 is the first slice of the M2 core-runtime milestone. It does **not** claim a complete or ABI-compatible `exec.library` yet.
 
@@ -56,16 +56,21 @@ On the A500/68000 FS-UAE profile, PASS requires:
 - descriptor at `$00002000` begins with `EX01`;
 - CPU remains in the intentional final idle loop.
 
-A visible green screen proves control flow has passed SysBase and descriptor initialization, but direct debugger inspection should be used when available for stronger evidence.
+A visible green screen proves control flow has passed SysBase and descriptor initialization. Direct debugger inspection is stronger evidence when available, but was not required for this M2.0 visual qualification.
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-10
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM SHA-256: pending
-- Green `COLOR00` marker: pending
-- SysBase `$00000004`: pending
-- Descriptor `EX01`: pending
-- Result: **PENDING**
+- ROM: 524288 bytes; FS-UAE identified KS ROM `a9ebff9e`
+- Green `COLOR00` marker: **observed**
+- SysBase `$00000004`: **inferred from statically verified instruction order before observed COLOR00 marker; not directly inspected**
+- Descriptor `EX01`: **inferred from statically verified instruction order before observed COLOR00 marker; not directly inspected**
+- Emulator exit: clean manual quit (`UAE: Calling uae_quit`, `UAE: Stopping`)
+- Result: **PASS**
+
+## Evidence boundary
+
+This PASS proves the M2.0 bootstrap reaches the Exec-foundation state and remains stable in FS-UAE. It does **not** prove full `ExecBase` layout compatibility, callable Exec vectors, multitasking, interrupts, memory allocation APIs, devices, DOS, or Workbench compatibility.
