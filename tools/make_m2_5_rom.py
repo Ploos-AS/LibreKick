@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.5: complete classic Exec list/queue slice."""
+"""Build LibreKick M2.5a: Exec queue/search slice with internal Enqueue diagnostics."""
 from pathlib import Path
 import struct, sys
 
@@ -48,12 +48,15 @@ def cmp_d0(code,expected):
     code += bytes.fromhex("0C80")+struct.pack(">I",expected); return branch(code,0x6600)
 
 def enqueue_code():
-    # Enqueue(List *a0, Node *a1). Keep the original List in a0; use a2 as
-    # the current node and a3 as predecessor. Insert expects a0/a1/a2.
+    # First-call diagnostic path on an empty list:
+    #   dark red entry -> orange head loaded -> magenta before Insert
+    #   -> cyan after Insert. Outer bootstrap then paints its normal checkpoint.
     q=bytearray(bytes.fromhex("2F002F012F082F092F0A2F0B"))
+    q += mw(0x0800, COLOR00)                       # dark red: entered Enqueue
     q += bytes.fromhex("7200122900094881")       # d1 = signed new priority
     q += bytes.fromhex("267C00000000")           # a3 = predecessor NULL
     q += bytes.fromhex("2450")                   # a2 = list->lh_Head
+    q += mw(0x0f40, COLOR00)                       # orange: head loaded
     loop=len(q)
     q += bytes.fromhex("4A92")                   # tail sentinel has succ == NULL
     ins1=branch(q,0x6700)
@@ -63,8 +66,10 @@ def enqueue_code():
     q += bytes.fromhex("264A2452")               # pred=current; current=current->succ
     again=branch(q,0x6000)
     insert=len(q)
-    q += bytes.fromhex("244B")                   # a2 = predecessor (a0 stays List)
+    q += bytes.fromhex("244B")                   # a2 = predecessor; a0 remains List
+    q += mw(0x0f0f, COLOR00)                       # magenta: about to call Insert
     q += bytes.fromhex("4EAEFF16")               # Insert -234(a6)
+    q += mw(0x00ff, COLOR00)                       # cyan: Insert returned
     q += bytes.fromhex("265F245F225F205F221F201F4E75")
     patch_branch(q,ins1,insert); patch_branch(q,ins2,insert); patch_branch(q,again,loop)
     return bytes(q)
@@ -129,4 +134,4 @@ def build():
 
 if __name__=="__main__":
     if len(sys.argv)!=2: raise SystemExit("usage: make_m2_5_rom.py OUTPUT")
-    out=Path(sys.argv[1]); data=build(); out.write_bytes(data); print(f"M2.5 ROM built: {out} ({len(data)} bytes)")
+    out=Path(sys.argv[1]); data=build(); out.write_bytes(data); print(f"M2.5a ROM built: {out} ({len(data)} bytes)")
