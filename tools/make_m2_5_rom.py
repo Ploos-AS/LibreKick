@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.5a: Exec queue/search slice with internal Enqueue diagnostics."""
+"""Build LibreKick M2.5b: Exec queue/search slice with sentinel-branch diagnostics."""
 from pathlib import Path
 import struct, sys
 
@@ -48,9 +48,11 @@ def cmp_d0(code,expected):
     code += bytes.fromhex("0C80")+struct.pack(">I",expected); return branch(code,0x6600)
 
 def enqueue_code():
-    # First-call diagnostic path on an empty list:
-    #   dark red entry -> orange head loaded -> magenta before Insert
-    #   -> cyan after Insert. Outer bootstrap then paints its normal checkpoint.
+    # First-call diagnostic chain:
+    # dark red entry -> orange head loaded ->
+    #   magenta if tail-sentinel BEQ is taken,
+    #   yellow if BEQ falls through unexpectedly ->
+    # cyan after Insert returns.
     q=bytearray(bytes.fromhex("2F002F012F082F092F0A2F0B"))
     q += mw(0x0800, COLOR00)                       # dark red: entered Enqueue
     q += bytes.fromhex("7200122900094881")       # d1 = signed new priority
@@ -58,8 +60,9 @@ def enqueue_code():
     q += bytes.fromhex("2450")                   # a2 = list->lh_Head
     q += mw(0x0f40, COLOR00)                       # orange: head loaded
     loop=len(q)
-    q += bytes.fromhex("4A92")                   # tail sentinel has succ == NULL
-    ins1=branch(q,0x6700)
+    q += bytes.fromhex("4A92")                   # TST.L (a2): sentinel succ should be 0
+    ins1=branch(q,0x6700)                         # BEQ insert
+    q += mw(0x0ff0, COLOR00)                      # yellow: BEQ fell through
     q += bytes.fromhex("7000102A00094880")       # d0 = signed current priority
     q += bytes.fromhex("B041")                   # current - new
     ins2=branch(q,0x6D00)                         # current < new => insert before
@@ -67,9 +70,9 @@ def enqueue_code():
     again=branch(q,0x6000)
     insert=len(q)
     q += bytes.fromhex("244B")                   # a2 = predecessor; a0 remains List
-    q += mw(0x0f0f, COLOR00)                       # magenta: about to call Insert
+    q += mw(0x0f0f, COLOR00)                      # magenta: sentinel path reached
     q += bytes.fromhex("4EAEFF16")               # Insert -234(a6)
-    q += mw(0x00ff, COLOR00)                       # cyan: Insert returned
+    q += mw(0x00ff, COLOR00)                      # cyan: Insert returned
     q += bytes.fromhex("265F245F225F205F221F201F4E75")
     patch_branch(q,ins1,insert); patch_branch(q,ins2,insert); patch_branch(q,again,loop)
     return bytes(q)
@@ -134,4 +137,4 @@ def build():
 
 if __name__=="__main__":
     if len(sys.argv)!=2: raise SystemExit("usage: make_m2_5_rom.py OUTPUT")
-    out=Path(sys.argv[1]); data=build(); out.write_bytes(data); print(f"M2.5a ROM built: {out} ({len(data)} bytes)")
+    out=Path(sys.argv[1]); data=build(); out.write_bytes(data); print(f"M2.5b ROM built: {out} ({len(data)} bytes)")
