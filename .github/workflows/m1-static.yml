@@ -1,0 +1,14 @@
+name: M1 static qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  m1-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify LibreKick M1 ROM
+        run: make clean check

@@ -1,0 +1,9 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m1.rom
+accuracy = 1
+fullscreen = 0
+
+# M1 qualification expects a stock 68000-class A500 profile. No floppy is
+# required: successful reset/bootstrap is observed through COLOR00 and the
+# chip-RAM debug signature described in docs/M1_QUALIFICATION.md.
