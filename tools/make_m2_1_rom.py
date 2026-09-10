@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build LibreKick M2.1: Library-layout and negative-vector ABI foundation."""
+"""Build LibreKick M2.1a: Library-layout and negative-vector ABI diagnostics."""
 from pathlib import Path
 import struct
 import sys
@@ -56,17 +56,22 @@ def build() -> bytearray:
     code += ml_imm_abs(0x4EF900F8, PROBE_VECTOR)
     code += mw_imm_abs(PROBE_FUNC & 0xFFFF, PROBE_VECTOR + 4)
 
-    # Call the vector through an A6 library base, exactly as Amiga libraries do.
+    # Diagnostic checkpoint: red means initialization reached the vector call.
+    code += mw_imm_abs(0x0F00, COLOR00)
+
+    # Call the vector through A6 exactly as an Amiga library client does.
     code += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)  # lea EXEC_BASE,a6
     code += bytes.fromhex("4EAEFFFA")                    # jsr -6(a6)
     code += b"\x23\xc0" + struct.pack(">I", PROBE_RESULT_ADDR)  # move.l d0,abs.l
-    code += mw_imm_abs(0x0F0F, COLOR00)                   # magenta success marker
+
+    # Success checkpoint: green is written only after the negative vector returns.
+    code += mw_imm_abs(0x00F0, COLOR00)
     code += bytes.fromhex("60FE")                        # idle loop
     image[8:8 + len(code)] = code
 
-    marker = b"LIBREKICK-M2.1\0LIBRARY-ABI-VECTOR-FOUNDATION\0"
+    marker = b"LIBREKICK-M2.1A\0LIBRARY-ABI-VECTOR-DIAGNOSTIC\0"
     image[0x100:0x100 + len(marker)] = marker
-    ident = b"exec.library\0LibreKick M2.1 ABI foundation 40.1\0"
+    ident = b"exec.library\0LibreKick M2.1a ABI foundation 40.1\0"
     image[0x180:0x180 + len(ident)] = ident
 
     probe = b"\x20\x3c" + struct.pack(">I", PROBE_MAGIC) + b"\x4e\x75"
@@ -87,7 +92,7 @@ def main() -> None:
     out = Path(sys.argv[1])
     image = build()
     out.write_bytes(image)
-    print(f"M2.1 ROM built: {out} ({len(image)} bytes)")
+    print(f"M2.1a ROM built: {out} ({len(image)} bytes)")
 
 
 if __name__ == "__main__":
