@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_6.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.6 qualifies the first deterministic AllocMem/FreeMem slice on 68000.
+# Green means allocate/exhaust/free/reuse semantics passed.
