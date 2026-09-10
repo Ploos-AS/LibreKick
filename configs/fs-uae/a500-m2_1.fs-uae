@@ -1,0 +1,9 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_1.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.1 success marker: COLOR00 = $0F0F (magenta).
+# The bootstrap also calls the private -6(a6) probe vector and stores
+# its D0 return value 'LKV1' at chip RAM $00001040.
