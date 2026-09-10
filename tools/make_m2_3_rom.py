@@ -11,7 +11,9 @@ EXEC_BASE = 0x00002400
 COLOR00 = 0x00DFF180
 CIAA_PRA = 0x00BFE001
 CIAA_DDRA = 0x00BFE201
-IDSTRING_ADDR = ROM_BASE + 0x180
+MARKER_OFF = 0x500
+IDENT_OFF = 0x580
+IDSTRING_ADDR = ROM_BASE + IDENT_OFF
 ADDHEAD_FUNC = ROM_BASE + 0x380
 REMHEAD_FUNC = ROM_BASE + 0x3A0
 LIST_ADDR = 0x00001100
@@ -40,7 +42,6 @@ def build():
     c += bclr0(CIAA_PRA)
     c += ml(EXEC_BASE, 4)
 
-    # struct Library-compatible header; negative space reaches RemHead(-258).
     c += ml(0, EXEC_BASE + 0)
     c += ml(0, EXEC_BASE + 4)
     c += mw(0x0900, EXEC_BASE + 8)
@@ -57,7 +58,6 @@ def build():
     c += vector(ADDHEAD_FUNC, EXEC_BASE - 240)
     c += vector(REMHEAD_FUNC, EXEC_BASE - 258)
 
-    # NewList-equivalent probe list initialization.
     c += ml(LIST_ADDR + 4, LIST_ADDR + 0)
     c += ml(0, LIST_ADDR + 4)
     c += ml(LIST_ADDR + 0, LIST_ADDR + 8)
@@ -69,10 +69,10 @@ def build():
     c += b"\x4d\xf9" + struct.pack(">I", EXEC_BASE)
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
     c += b"\x43\xf9" + struct.pack(">I", NODE_ADDR)
-    c += bytes.fromhex("4EAEFF10")  # AddHead -240
+    c += bytes.fromhex("4EAEFF10")
 
     c += b"\x41\xf9" + struct.pack(">I", LIST_ADDR)
-    c += bytes.fromhex("4EAEFEFE")  # RemHead -258
+    c += bytes.fromhex("4EAEFEFE")
     c += b"\x0c\x80" + struct.pack(">I", NODE_ADDR)
     bne1 = len(c); c += bytes.fromhex("6600")
 
@@ -98,47 +98,17 @@ def build():
     image[8:8 + len(c)] = c
 
     marker = b"LIBREKICK-M2.3\0PUBLIC-EXEC-LVO-ADDHEAD-REMHEAD\0"
-    image[0x100:0x100 + len(marker)] = marker
+    image[MARKER_OFF:MARKER_OFF + len(marker)] = marker
     ident = b"exec.library\0LibreKick M2.3 public list LVO slice 40.3\0"
-    image[0x180:0x180 + len(ident)] = ident
+    image[IDENT_OFF:IDENT_OFF + len(ident)] = ident
 
-    # AddHead(a0=list,a1=node). Preserve D0/A0/A1.
     addhead = bytes.fromhex(
-        "2F00"          # move.l d0,-(sp)
-        "2F08"          # move.l a0,-(sp)
-        "2F09"          # move.l a1,-(sp)
-        "2010"          # move.l (a0),d0
-        "2280"          # move.l d0,(a1)
-        "23480004"      # move.l a0,4(a1)
-        "2040"          # move.l d0,a0
-        "21490004"      # move.l a1,4(a0)
-        "206F0004"      # movea.l 4(sp),a0
-        "2089"          # move.l a1,(a0)
-        "225F"          # movea.l (sp)+,a1
-        "205F"          # movea.l (sp)+,a0
-        "201F"          # move.l (sp)+,d0
-        "4E75"
+        "2F002F082F092010228023480004204021490004206F00042089225F205F201F4E75"
     )
     image[0x380:0x380 + len(addhead)] = addhead
 
-    # RemHead(a0=list) -> d0=node or NULL. Preserve D1/A0/A1.
     remhead = bytes.fromhex(
-        "2F01"          # move.l d1,-(sp)
-        "2F08"          # move.l a0,-(sp)
-        "2F09"          # move.l a1,-(sp)
-        "2010"          # move.l (a0),d0
-        "2240"          # movea.l d0,a1
-        "2211"          # move.l (a1),d1
-        "670A"          # beq.s empty
-        "2081"          # move.l d1,(a0)
-        "2241"          # movea.l d1,a1
-        "23480004"      # move.l a0,4(a1)
-        "6002"          # bra.s done
-        "7000"          # empty: moveq #0,d0
-        "225F"          # done: restore a1
-        "205F"          # restore a0
-        "221F"          # restore d1
-        "4E75"
+        "2F012F082F09201022402211670A208122412348000460027000225F205F221F4E75"
     )
     image[0x3A0:0x3A0 + len(remhead)] = remhead
 
