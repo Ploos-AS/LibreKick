@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_4.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.4 qualifies the complete basic Exec doubly-linked list API slice on a
+# stock 68000-class A500 profile. Green means the semantic probe passed.
