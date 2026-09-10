@@ -1,6 +1,6 @@
 # M2.1 Library ABI Foundation Qualification
 
-Status: **STATIC READY / M2.1C RUNTIME PENDING**
+Status: **PASS**
 
 M2.1 replaces the private M2.0 descriptor with an Amiga-style `struct Library` positive region and a real negative-vector call mechanism. It deliberately does **not** claim complete `exec.library` ABI or semantic compatibility yet.
 
@@ -62,11 +62,21 @@ M2.1c does not yet provide scheduler semantics, memory allocation, signals, mess
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-10
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- Diagnostic screen: pending
-- `SysBase`: pending
-- `LKV1` result at `$00001040`: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- FS-UAE ROM ID: `750af6e6`
+- Static check: **PASS**
+- Reset SP: `$0007fffc`
+- Reset PC: `$00f80008`
+- OVL handoff: correct (`BCLR #0,CIAA_PRA`)
+- Negative vector: `-6(a6)` RAM vector to ROM probe
+- Diagnostic screen: **green observed**
+- `SysBase`: inferred from statically verified executed bootstrap path; direct debugger read not captured
+- `LKV1` result at `$00001040`: inferred from the statically verified instruction sequence preceding the green checkpoint; direct debugger read not captured
+- Emulator exit: normal manual quit (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
+
+The green checkpoint is written only after `JSR -6(a6)` has returned and D0 has been stored at `$00001040`, so the observed green screen is direct control-flow evidence that the corrected overlay handoff and negative-vector call/return path completed successfully.
