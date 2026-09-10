@@ -40,14 +40,21 @@ assert struct.pack(">H", REMHEAD & 0xffff) in boot, "missing RemHead target"
 assert bytes.fromhex("4EAEFF10") in boot, "missing AddHead call -240(a6)"
 assert boot.count(bytes.fromhex("4EAEFEFE")) >= 2, "missing RemHead calls -258(a6)"
 
+# Keep the static checker byte-for-byte aligned with the generator. The M2.3
+# qualification validates the exact emitted routines, not a separately copied
+# hand-assembly variant.
 ADDHEAD_CODE = bytes.fromhex(
     "2F002F082F092010228023480004204021490004206F00042089225F205F201F4E75"
 )
 REMHEAD_CODE = bytes.fromhex(
     "2F012F082F09201022402211670A208122412348000460027000225F205F221F4E75"
 )
-assert data[0x380:0x380+len(ADDHEAD_CODE)] == ADDHEAD_CODE, "AddHead implementation mismatch"
-assert data[0x3A0:0x3A0+len(REMHEAD_CODE)] == REMHEAD_CODE, "RemHead implementation mismatch"
+assert data[0x380:0x380+len(ADDHEAD_CODE)] == ADDHEAD_CODE, (
+    f"AddHead implementation mismatch: got {data[0x380:0x380+len(ADDHEAD_CODE)].hex()}"
+)
+assert data[0x3A0:0x3A0+len(REMHEAD_CODE)] == REMHEAD_CODE, (
+    f"RemHead implementation mismatch: got {data[0x3A0:0x3A0+len(REMHEAD_CODE)].hex()}"
+)
 
 assert bytes.fromhex("33FC010200002410") in boot, "lib_NegSize != 258"
 assert bytes.fromhex("33FC002800002414") in boot, "lib_Version != 40"
