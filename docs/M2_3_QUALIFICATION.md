@@ -1,6 +1,6 @@
 # M2.3 Public Exec List Primitive Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.3 extends LibreKick's public `exec.library` slice with two documented list primitives:
 
@@ -35,7 +35,14 @@ make clean
 make check
 ```
 
-Static PASS verifies the 512 KiB ROM, reset vectors, OVL handoff, Library V40.3 header, negative-vector reach through -258, exact public call offsets, exact 68000 routine bytes, runtime markers, and final one's-complement ROM checksum.
+Static PASS verifies the 512 KiB ROM, reset vectors, OVL handoff, Library V40.3 header, negative-vector reach through -258, exact public call offsets, exact 68000 routine bytes, runtime markers, routine non-overlap, and final one's-complement ROM checksum.
+
+Observed static qualification output:
+
+```text
+M2.3 check PASS: build/librekick-m2_3.rom (524288 bytes)
+Exec AddHead(-240)/RemHead(-258); one-node + empty-list probe; checksum=0xffffffff
+```
 
 ## Runtime gate
 
@@ -45,16 +52,20 @@ make qualify-m2_3
 
 Target: FS-UAE A500 / 68000. Runtime PASS requires a stable green screen and clean emulator operation until manual exit.
 
+Observed runtime result: **PASS**. The stable green screen was observed, and FS-UAE ran until normal manual exit without a reset loop or emulator-side failure.
+
 ## Non-claims
 
 M2.3 does not yet implement `Insert`, `AddTail`, `Remove`, `RemTail`, `Enqueue`, `FindName`, memory allocation, scheduling, signals, messages, interrupts, devices, DOS, or Intuition.
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-10
+- FS-UAE: 3.2.35 (Linux x86-64)
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- FS-UAE ROM identifier: `aa3e6c6f`
+- Static checksum: `0xffffffff`
+- Diagnostic screen: stable green (`COLOR00=$0F0`) observed
+- Emulator exit: normal manual exit (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
