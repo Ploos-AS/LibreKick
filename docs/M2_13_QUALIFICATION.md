@@ -1,6 +1,6 @@
 # M2.13 Exec AddMemList Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.13 adds the first public `AddMemList()` slice to LibreKick.
 
@@ -62,10 +62,14 @@ Those are follow-up slices, starting with M2.14 dynamic allocation/routing.
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- ROM identifier/hash: `f1fbf6c4` (FS-UAE KS ROM identifier)
+- Static checker: PASS
+- ROM checksum: `0xffffffff`
+- Diagnostic screen: stable green PASS marker
+- Emulator exit: normal manual exit (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
