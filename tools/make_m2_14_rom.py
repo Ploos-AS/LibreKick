@@ -10,7 +10,7 @@ from make_m2_13_rom import (
     DYN_BASE, DYN_SIZE, DYN_HEADER_SIZE, DYN_PAYLOAD, DYN_FREE,
     ml, mw, mb, bclr0, vector, branch, patch, cmpd0, cmpabs, ones,
     relocate_region, allocmem_core_code, freemem_code, largest_code,
-    addmemlist_code, avail_wrapper_code,
+    addmemlist_code, avail_wrapper_code, base_avail_code,
     CHIP_ALLOC_OFF, CHIP_FREE_OFF, FAST_ALLOC_OFF, FAST_FREE_OFF,
     CHIP_LARGEST_OFF, FAST_LARGEST_OFF, ADDMEM_OFF, BASE_AVAIL_OFF,
     MEMF_CHIP, MEMF_FAST, MEMF_CLEAR, MEMF_TOTAL, MEMF_LARGEST,
@@ -29,21 +29,21 @@ FUNCS={198:ROM_BASE+0x0B00,210:ROM_BASE+0x0C00,216:ROM_BASE+0x0D00,618:ROM_BASE+
 def alloc_wrapper_code():
     """Static CHIP first; FAST falls back to registered dynamic region."""
     q=bytearray(bytes.fromhex('2F022F032F08'))
-    q+=bytes.fromhex('24002601')                         # d2=size, d3=reqs
-    q+=bytes.fromhex('08030002'); fast=branch(q,0x6600) # FAST?
+    q+=bytes.fromhex('24002601')
+    q+=bytes.fromhex('08030002'); fast=branch(q,0x6600)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+CHIP_ALLOC_OFF)
     common=branch(q,0x6000)
     f=len(q)
-    q+=bytes.fromhex('08030001'); reject=branch(q,0x6600) # CHIP+FAST conflict
+    q+=bytes.fromhex('08030001'); reject=branch(q,0x6600)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+FAST_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); got_static=branch(q,0x6600)
     q+=bytes.fromhex('2039')+struct.pack('>I',DYN_SLOT)
     q+=bytes.fromhex('4A80'); no_dyn=branch(q,0x6700)
     q+=bytes.fromhex('2040')
-    q+=bytes.fromhex('3428000E')                         # dyn attrs
+    q+=bytes.fromhex('3428000E')
     q+=bytes.fromhex('08020002'); no_dyn_fast=branch(q,0x6700)
-    q+=bytes.fromhex('2002')                             # restore size d0=d2
-    q+=bytes.fromhex('2203')                             # reqs d1=d3
+    q+=bytes.fromhex('2002')
+    q+=bytes.fromhex('2203')
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+DYN_ALLOC_OFF)
     after=len(q)
     q+=bytes.fromhex('4A80'); done_null=branch(q,0x6700)
@@ -63,9 +63,9 @@ def alloc_wrapper_code():
 def free_wrapper_code():
     """Route frees to CHIP, static FAST, or registered dynamic region by address."""
     q=bytearray(bytes.fromhex('2F012F02'))
-    q+=bytes.fromhex('22092409')                         # d1=addr,d2=addr
+    q+=bytes.fromhex('22092409')
     q+=bytes.fromhex('0C81')+struct.pack('>I',DYN_PAYLOAD)
-    dyn=branch(q,0x6400)                                 # >= dyn payload
+    dyn=branch(q,0x6400)
     q+=bytes.fromhex('0C81')+struct.pack('>I',FAST_BASE)
     fast=branch(q,0x6400)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+CHIP_FREE_OFF)
@@ -102,13 +102,11 @@ def build():
         nonlocal c
         c+=bytes.fromhex('227C')+struct.pack('>I',addr)+bytes.fromhex('203C')+struct.pack('>I',size)+bytes.fromhex('4EAEFF2E')
 
-    # Register dynamic FAST region.
     c+=bytes.fromhex('203C')+struct.pack('>I',DYN_SIZE)+bytes.fromhex('223C')+struct.pack('>I',MEMF_FAST)+bytes.fromhex('243C00000005')
     c+=bytes.fromhex('207C')+struct.pack('>I',DYN_BASE)+bytes.fromhex('227C')+struct.pack('>I',DYN_NAME_ADDR)+bytes.fromhex('4EAEFD96')
     fails.append(cmpabs(c,DYN_BASE,DYN_SLOT))
     avail(MEMF_FAST,FAST_SIZE+DYN_FREE)
 
-    # Exhaust static FAST, then require fallback allocation from dynamic region.
     alloc(FAST_SIZE,MEMF_FAST,FAST_BASE)
     alloc(0x100,MEMF_FAST|MEMF_CLEAR,DYN_PAYLOAD)
     for off in range(0,0x100,4): fails.append(cmpabs(c,0,DYN_PAYLOAD+off))
@@ -116,7 +114,6 @@ def build():
     fails.append(cmpabs(c,DYN_PAYLOAD+0x100,DYN_BASE+MH_FIRST))
     fails.append(cmpabs(c,DYN_FREE-0x100,DYN_BASE+MH_FREE))
 
-    # Free routes must restore dynamic then static FAST regions independently.
     free(DYN_PAYLOAD,0x100)
     fails.append(cmpabs(c,DYN_PAYLOAD,DYN_BASE+MH_FIRST)); fails.append(cmpabs(c,DYN_FREE,DYN_BASE+MH_FREE))
     free(FAST_BASE,FAST_SIZE)
