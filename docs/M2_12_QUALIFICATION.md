@@ -1,6 +1,6 @@
 # M2.12 Exec AvailMem / MEMF_LARGEST Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.12 extends the M2.11 two-region memory model with more complete `AvailMem()` semantics. In particular, `MEMF_LARGEST` returns the size of the largest single free block matching the requested memory attributes rather than total free bytes.
 
@@ -71,10 +71,14 @@ M2.12 does not yet implement dynamically registered memory regions, `AddMemList(
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- ROM identifier/hash: `c34a0291`
+- Static checker: **PASS**
+- ROM checksum: `0xffffffff`
+- Diagnostic screen: stable green (`$0F0`)
+- Emulator exit: normal manual exit (`uae_quit`, stopping)
+- Result: **PASS**
