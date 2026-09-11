@@ -1,6 +1,6 @@
 # M2.10 Exec MEMF_CLEAR / Requirement Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.10 keeps the M2.9 first-fit allocator and adds the first public requirement semantics for the single CHIP `MemHeader`:
 
@@ -46,10 +46,14 @@ M2.10 does not yet implement multiple `MemHeader` regions, general attribute ran
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- FS-UAE ROM identifier: `0c12a0ac`
+- Static check: **PASS** (`M2.10 check PASS`)
+- ROM checksum: `0xffffffff`
+- Diagnostic screen: stable green
+- Emulator exit: normal (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
