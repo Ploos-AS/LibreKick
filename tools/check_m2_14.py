@@ -29,10 +29,13 @@ alloc=data[0x0B00:0x0C00]
 for target in (0x00F81000,0x00F81600): assert bytes.fromhex('4EB9')+struct.pack('>I',target) in alloc
 assert struct.pack('>I',DYN_SLOT) in alloc
 assert bytes.fromhex('08020002') in alloc
-# Free wrapper must route to dynamic free core.
+# Free wrapper must route to dynamic free core without clobbering public D0=size.
 free=data[0x0C00:0x0D00]
 assert struct.pack('>I',DYN_PAYLOAD) in free
 assert bytes.fromhex('4EB9')+struct.pack('>I',0x00F81700) in free
+slot=struct.pack('>I',DYN_SLOT)
+assert bytes.fromhex('2239')+slot in free, 'dynamic slot check must use D1 scratch'
+assert bytes.fromhex('2039')+slot not in free, 'dynamic slot check must not clobber D0 FreeMem size'
 # Relocated dynamic cores must touch dynamic mh_First/mh_Free.
 for off in (0x1600,0x1700):
     code=data[off:off+0x100]
