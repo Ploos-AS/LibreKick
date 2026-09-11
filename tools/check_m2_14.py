@@ -19,24 +19,24 @@ assert bytes.fromhex('33FC026A00003410') in boot or struct.pack('>H',618) in boo
 for lvo,off in ((198,0x0B00),(210,0x0C00),(216,0x0D00),(618,0x1400)):
     assert struct.pack('>I',EXEC_BASE-lvo) in boot
     assert struct.pack('>H',(0x00F80000+off)&0xffff) in boot
-# Runtime calls AddMemList, exhausts static FAST, then allocates from dynamic payload.
 assert bytes.fromhex('4EAEFD96') in boot
 assert boot.count(bytes.fromhex('4EAEFF3A'))>=2
 assert boot.count(bytes.fromhex('4EAEFF2E'))>=2
 for v in (FAST_BASE,DYN_BASE,DYN_PAYLOAD,0x1000,0x0FE0,0x0EE0): assert struct.pack('>I',v) in boot
-# Alloc wrapper must call static FAST and dynamic cores and inspect the registration slot.
 alloc=data[0x0B00:0x0C00]
 for target in (0x00F81000,0x00F81600): assert bytes.fromhex('4EB9')+struct.pack('>I',target) in alloc
 assert struct.pack('>I',DYN_SLOT) in alloc
-assert bytes.fromhex('08020002') in alloc
-# Free wrapper must route to dynamic free core without clobbering public D0=size.
+# D2 carries the saved allocation size. Dynamic attributes must be inspected in D1,
+# otherwise a 0x100 request is truncated to MEMF_FAST (4 bytes).
+assert bytes.fromhex('3228000E08010002') in alloc, 'dynamic attrs must use D1 scratch'
+assert bytes.fromhex('3428000E08020002') not in alloc, 'dynamic attrs must not clobber D2 saved size'
+assert bytes.fromhex('20022203') in alloc, 'dynamic fallback must restore size D0<-D2 and reqs D1<-D3'
 free=data[0x0C00:0x0D00]
 assert struct.pack('>I',DYN_PAYLOAD) in free
 assert bytes.fromhex('4EB9')+struct.pack('>I',0x00F81700) in free
 slot=struct.pack('>I',DYN_SLOT)
 assert bytes.fromhex('2239')+slot in free, 'dynamic slot check must use D1 scratch'
 assert bytes.fromhex('2039')+slot not in free, 'dynamic slot check must not clobber D0 FreeMem size'
-# Relocated dynamic cores must touch dynamic mh_First/mh_Free.
 for off in (0x1600,0x1700):
     code=data[off:off+0x100]
     assert struct.pack('>I',DYN_BASE+16) in code
