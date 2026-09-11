@@ -1,6 +1,6 @@
 # M2.9 Exec AllocMem First-Fit Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.9 extends the single-region M2.8 allocator so `AllocMem()` walks the complete address-sorted `MemChunk` free list instead of assuming the head chunk is large enough.
 
@@ -69,10 +69,14 @@ Target: FS-UAE A500 / 68000. Runtime PASS requires a stable green screen and nor
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: local Linux x86-64 qualification host
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- ROM identifier/hash reported by FS-UAE: `8d546149`
+- Static checker: **PASS**
+- ROM checksum: `0xffffffff`
+- Diagnostic screen: stable green (`$0F0`)
+- Emulator exit: normal manual exit (`uae_quit` / Stopping)
+- Result: **PASS**
