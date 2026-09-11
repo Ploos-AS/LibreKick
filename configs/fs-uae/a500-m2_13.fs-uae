@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_13.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.13 qualifies AddMemList() dynamic MemHeader registration on the 68000 A500 baseline.
+# Green means header/chunk creation and dynamic AvailMem total accounting passed.
