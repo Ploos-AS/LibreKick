@@ -61,7 +61,11 @@ def alloc_wrapper_code():
 
 
 def free_wrapper_code():
-    """Route frees to CHIP, static FAST, or registered dynamic region by address."""
+    """Route frees to CHIP, static FAST, or registered dynamic region by address.
+
+    D0 is the public FreeMem() byte count and must survive routing unchanged.
+    Use D1 as the scratch register for the dynamic-registration slot check.
+    """
     q=bytearray(bytes.fromhex('2F012F02'))
     q+=bytes.fromhex('22092409')
     q+=bytes.fromhex('0C81')+struct.pack('>I',DYN_PAYLOAD)
@@ -73,8 +77,8 @@ def free_wrapper_code():
     fs=len(q); q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+FAST_FREE_OFF)
     done1=branch(q,0x6000)
     dy=len(q)
-    q+=bytes.fromhex('2039')+struct.pack('>I',DYN_SLOT)
-    q+=bytes.fromhex('4A80'); done_no=branch(q,0x6700)
+    q+=bytes.fromhex('2239')+struct.pack('>I',DYN_SLOT)  # scratch D1; preserve D0=size
+    q+=bytes.fromhex('4A81'); done_no=branch(q,0x6700)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+DYN_FREE_OFF)
     done=len(q); q+=bytes.fromhex('241F221F4E75')
     patch(q,dyn,dy); patch(q,fast,fs); patch(q,done0,done); patch(q,done1,done); patch(q,done_no,done)
