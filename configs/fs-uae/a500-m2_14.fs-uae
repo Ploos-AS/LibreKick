@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_14.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.14 qualifies dynamic AllocMem/FreeMem routing after AddMemList on the 68000 A500 baseline.
+# Green means static-to-dynamic fallback, CLEAR, free routing, and accounting passed.
