@@ -1,6 +1,6 @@
 # M2.11 Exec Multi-MemHeader Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.11 extends the M2.10 allocator from one logical CHIP region to two logical Exec memory regions:
 
@@ -55,6 +55,8 @@ make check
 
 The checker verifies both `MemHeader` initializations and attributes, public memory LVOs, CHIP/FAST allocation/free dispatch, relocated per-region cores, CLEAR handling, AvailMem region accounting, runtime probe call coverage, PASS/FAIL markers and final ROM checksum.
 
+Result: **PASS**.
+
 ## Runtime gate
 
 ```sh
@@ -63,16 +65,21 @@ make qualify-m2_11
 
 Target: FS-UAE A500 / 68000. Runtime PASS requires a stable green screen and normal manual emulator exit.
 
+Result: **PASS**.
+
 ## Non-claims
 
 M2.11 does not yet implement physical Fast RAM discovery, `AddMemList()`, arbitrary numbers of dynamically registered `MemHeader` regions, region priority/ranking, `MEMF_LARGEST`, or full `AvailMem()` semantics.
 
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- ROM identifier: FS-UAE `bf705e65`
+- Static checker: **PASS** — `Exec two-region CHIP/FAST MemHeader routing + CLEAR + AvailMem filtering; checksum=0xffffffff`
+- Diagnostic screen: stable green (`$0F0`)
+- Emulator shutdown: normal (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
