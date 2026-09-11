@@ -27,9 +27,14 @@ FUNCS={198:ROM_BASE+0x0B00,210:ROM_BASE+0x0C00,216:ROM_BASE+0x0D00,618:ROM_BASE+
 
 
 def alloc_wrapper_code():
-    """Static CHIP first; FAST falls back to registered dynamic region."""
+    """Static CHIP first; FAST falls back to registered dynamic region.
+
+    D2 permanently carries the original byte count across routing. Dynamic
+    attribute inspection uses D1 as scratch so the fallback allocator receives
+    the full requested size rather than the region attribute word.
+    """
     q=bytearray(bytes.fromhex('2F022F032F08'))
-    q+=bytes.fromhex('24002601')
+    q+=bytes.fromhex('24002601')                         # d2=size, d3=requirements
     q+=bytes.fromhex('08030002'); fast=branch(q,0x6600)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+CHIP_ALLOC_OFF)
     common=branch(q,0x6000)
@@ -40,10 +45,10 @@ def alloc_wrapper_code():
     q+=bytes.fromhex('2039')+struct.pack('>I',DYN_SLOT)
     q+=bytes.fromhex('4A80'); no_dyn=branch(q,0x6700)
     q+=bytes.fromhex('2040')
-    q+=bytes.fromhex('3428000E')
-    q+=bytes.fromhex('08020002'); no_dyn_fast=branch(q,0x6700)
-    q+=bytes.fromhex('2002')
-    q+=bytes.fromhex('2203')
+    q+=bytes.fromhex('3228000E')                         # d1.w=dyn attrs; preserve d2=size
+    q+=bytes.fromhex('08010002'); no_dyn_fast=branch(q,0x6700)
+    q+=bytes.fromhex('2002')                             # restore requested size from d2
+    q+=bytes.fromhex('2203')                             # restore requirements from d3
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+DYN_ALLOC_OFF)
     after=len(q)
     q+=bytes.fromhex('4A80'); done_null=branch(q,0x6700)
@@ -77,7 +82,7 @@ def free_wrapper_code():
     fs=len(q); q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+FAST_FREE_OFF)
     done1=branch(q,0x6000)
     dy=len(q)
-    q+=bytes.fromhex('2239')+struct.pack('>I',DYN_SLOT)  # scratch D1; preserve D0=size
+    q+=bytes.fromhex('2239')+struct.pack('>I',DYN_SLOT)
     q+=bytes.fromhex('4A81'); done_no=branch(q,0x6700)
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+DYN_FREE_OFF)
     done=len(q); q+=bytes.fromhex('241F221F4E75')
