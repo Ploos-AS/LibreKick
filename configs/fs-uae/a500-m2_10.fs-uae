@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_10.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.10 qualifies MEMF_FAST filtering and MEMF_CLEAR zeroing on 68000.
+# Green means all requirement/clear assertions passed.
