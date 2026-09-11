@@ -1,6 +1,6 @@
 # M2.8 Exec Sorted Free-List Qualification
 
-Status: **STATIC READY / RUNTIME PENDING**
+Status: **PASS**
 
 M2.8 extends the single-region M2.7 allocator with an address-sorted `MemChunk` free list and bidirectional adjacent coalescing in `FreeMem()`.
 
@@ -56,6 +56,15 @@ make check
 
 The checker verifies the M2.8 ROM identity, A500 reset/OVL bootstrap, V40.8 header, memory LVO slots, MemHeader region constants, expected AllocMem/FreeMem/AvailMem call counts, multi-fragment runtime assertions, sorted-list traversal, both coalescing paths, 68000 address-register-TST regression guards, PASS/FAIL markers and ROM checksum.
 
+Static qualification result: **PASS**.
+
+Observed output:
+
+```text
+M2.8 check PASS: build/librekick-m2_8.rom (524288 bytes)
+Exec sorted FreeMem free-list + successor/predecessor coalescing; checksum=0xffffffff
+```
+
 ## Runtime gate
 
 ```sh
@@ -64,12 +73,17 @@ make qualify-m2_8
 
 Target: FS-UAE A500 / 68000. Runtime PASS requires a stable green screen and normal manual emulator exit.
 
+Runtime qualification result: **PASS**.
+
 ## Runtime record
 
-- Date: pending
-- Host: pending
-- FS-UAE: pending
+- Date: 2026-09-11
+- Host: Linux x86-64
+- FS-UAE: 3.2.35
 - CPU/model: A500 / 68000
-- ROM identifier/hash: pending
-- Diagnostic screen: pending
-- Result: **PENDING**
+- ROM size: 524288 bytes
+- FS-UAE ROM identifier: `c70fcbff`
+- ROM checksum gate: `0xffffffff`
+- Diagnostic screen: stable green (`$0F0`)
+- Emulator exit: normal manual quit (`UAE: Calling uae_quit` / `UAE: Stopping`)
+- Result: **PASS**
