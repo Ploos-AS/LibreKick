@@ -21,10 +21,16 @@ for lvo,off in ((198,0x0B00),(210,0x0C00),(216,0x0D00)):
     assert struct.pack('>I',EXEC_BASE-lvo) in boot
     assert struct.pack('>H',(0x00F80000+off)&0xffff) in boot
 # Both logical MemHeaders and their attributes/regions must be initialized.
-for v in (MEMHDR,FAST_HDR,MEM_BASE,FAST_BASE,MEM_BASE+MEM_SIZE,FAST_BASE+FAST_SIZE):
-    assert struct.pack('>I',v) in boot
+# Header addresses themselves are not necessarily emitted as literal immediates;
+# verify the canonical field writes and region bounds instead.
 assert bytes.fromhex('33FC00020000480E') in boot, 'missing CHIP MemHeader attribute'
 assert bytes.fromhex('33FC000400004A0E') in boot, 'missing FAST MemHeader attribute'
+for addr,val in (
+    (MEMHDR+16,MEM_BASE),(MEMHDR+20,MEM_BASE),(MEMHDR+24,MEM_BASE+MEM_SIZE),(MEMHDR+28,MEM_SIZE),
+    (FAST_HDR+16,FAST_BASE),(FAST_HDR+20,FAST_BASE),(FAST_HDR+24,FAST_BASE+FAST_SIZE),(FAST_HDR+28,FAST_SIZE),
+):
+    assert struct.pack('>I',addr) in boot, f'missing MemHeader field address {addr:08x}'
+    assert struct.pack('>I',val) in boot, f'missing MemHeader field value {val:08x}'
 # Wrapper must dispatch to distinct CHIP/FAST cores and preserve CLEAR support.
 alloc=data[0x0B00:0x0C00]
 for target in (0x00F80E00,0x00F81000): assert bytes.fromhex('4EB9')+struct.pack('>I',target) in alloc
