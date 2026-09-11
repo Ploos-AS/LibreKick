@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_12.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.12 qualifies AvailMem total-free and MEMF_LARGEST semantics.
+# Green means CHIP/FAST fragmentation and largest-block selection passed.
