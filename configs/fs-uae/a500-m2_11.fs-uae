@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_11.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.11 qualifies logical CHIP/FAST MemHeader routing on the A500/68000 baseline.
+# Green means region selection, CLEAR, FreeMem routing and AvailMem filtering passed.
