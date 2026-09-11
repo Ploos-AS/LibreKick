@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_9.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.9 qualifies AllocMem first-fit traversal across multiple free MemChunks.
+# Green means non-head split + whole-chunk selection and final coalescing passed.
