@@ -1,25 +1,25 @@
 PYTHON ?= python3
 BUILD_DIR := build
-ROM := $(BUILD_DIR)/librekick-m2_17.rom
+ROM := $(BUILD_DIR)/librekick-m2_18.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_17 m2_17
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_18 m2_18
 
 all: $(ROM)
 
-$(ROM): tools/make_m2_17_rom.py
+$(ROM): tools/make_m2_18_rom.py
 	mkdir -p $(BUILD_DIR)
-	$(PYTHON) tools/make_m2_17_rom.py $@
+	$(PYTHON) tools/make_m2_18_rom.py $@
 
 check: $(ROM)
-	$(PYTHON) tools/check_m2_17.py $(ROM)
+	$(PYTHON) tools/check_m2_18.py $(ROM)
 
-qualify-m2_17: check
-	fs-uae configs/fs-uae/a500-m2_17.fs-uae
+qualify-m2_18: check
+	fs-uae configs/fs-uae/a500-m2_18.fs-uae
 
-m2_17:
+m2_18:
 	mkdir -p $(BUILD_DIR)
-	$(PYTHON) tools/make_m2_17_rom.py $(BUILD_DIR)/librekick-m2_17.rom
-	$(PYTHON) tools/check_m2_17.py $(BUILD_DIR)/librekick-m2_17.rom
+	$(PYTHON) tools/make_m2_18_rom.py $(BUILD_DIR)/librekick-m2_18.rom
+	$(PYTHON) tools/check_m2_18.py $(BUILD_DIR)/librekick-m2_18.rom
 
 # Generic historical M2.x build/qualification targets.
 m2_%:
