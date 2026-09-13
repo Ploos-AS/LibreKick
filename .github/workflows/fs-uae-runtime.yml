@@ -1,0 +1,41 @@
+name: FS-UAE runtime qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fs-uae-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FS-UAE runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil
+
+      - name: Run current LibreKick ROM in FS-UAE
+        run: |
+          chmod +x ci/fs-uae/run-runtime-color-gate.sh
+          xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
+
+      - name: Upload FS-UAE runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fs-uae-runtime-qualification
+          path: |
+            build/fs-uae/runtime/result.txt
+            build/fs-uae/runtime/diagnostic.png
+            build/fs-uae/runtime/fs-uae.log
+            build/fs-uae/runtime/fs-uae-version.txt
+            build/fs-uae/runtime/rom.txt
+            build/fs-uae/runtime/config.txt
+          if-no-files-found: warn
