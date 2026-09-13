@@ -7,6 +7,8 @@ import make_m2_17_rom as m
 
 MARKER=b'LIBREKICK-M2.23\0EXEC-DYNAMIC-HEAD-WHOLE-CHUNK\0'
 IDENT=b'exec.library\0LibreKick M2.23 dynamic head whole-chunk slice 40.23\0'
+PROBE_OFF=0x2200
+PROBE_END=0x2400
 
 
 def build():
@@ -15,15 +17,14 @@ def build():
     # Chain an M2.23 probe after the M2.22 green path. M2.22 qualified the
     # non-head unlink path; this slice qualifies the complementary mh_First
     # replacement path when an exact-size request consumes the head chunk.
+    # The accumulated bootstrap probes have filled the pre-$0B00 area, so keep
+    # this probe in a dedicated currently-unused ROM window instead.
     boot=image[8:0x0B00]
     sig=bytes.fromhex('33FC00F000DFF1806000')
     gp=boot.rfind(sig)
     if gp<0: raise ValueError('M2.22 final success gate not found')
     good_abs=8+gp; branch_pos=good_abs+8
-    fail_sig=bytes.fromhex('33FC000F00DFF18060FE')
-    fp=boot.find(fail_sig,gp)
-    if fp<0: raise ValueError('M2.22 final fail gate not found')
-    test_abs=8+fp+len(fail_sig)
+    test_abs=PROBE_OFF
 
     c=bytearray(); fails=[]
     def alloc(size,flags,expect):
@@ -84,7 +85,9 @@ def build():
     idle=len(c); c+=bytes.fromhex('60FE')
     for fail in fails: m.patch(c,fail,bad)
     m.patch(c,ok,idle)
-    if test_abs+len(c)>=0x0B00: raise ValueError('M2.23 runtime probe exceeds bootstrap area')
+    if test_abs+len(c)>PROBE_END: raise ValueError('M2.23 runtime probe exceeds dedicated ROM window')
+    if any(b != 0xff for b in image[test_abs:test_abs+len(c)]):
+        raise ValueError('M2.23 runtime probe window is not unused')
     image[test_abs:test_abs+len(c)]=c
     struct.pack_into('>h',image,branch_pos+2,test_abs-(branch_pos+2))
 
