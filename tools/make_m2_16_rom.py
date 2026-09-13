@@ -95,11 +95,15 @@ def alloc_wrapper_code():
     wf=len(q)
     q+=bytes.fromhex('08040002'); advance_fast=branch(q,0x6700)
     td=len(q)
-    q+=bytes.fromhex('2248')                                 # a1=current header
+    q+=bytes.fromhex('2248')                                 # a1=current header for callee preservation
     q+=bytes.fromhex('20022203')                             # restore size/requirements
     q+=bytes.fromhex('4EB9')+struct.pack('>I',ROM_BASE+DYN_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); dyn_ok=branch(q,0x6600)
-    adv=len(q); q+=bytes.fromhex('2051')                     # a0=current->ln_Succ via saved a1
+    # Advance from A0, which always holds the current MemHeader. The previous
+    # version advanced via A1; on an attribute-mismatch path A1 still referred
+    # to the prior header, so C -> B then repeatedly reloaded B and never
+    # reached A. The initial diagnostic red screen therefore remained forever.
+    adv=len(q); q+=bytes.fromhex('2050')                     # a0=current->ln_Succ
     again=branch(q,0x6000)
 
     # Shared success path performs MEMF_CLEAR over the aligned requested size.
