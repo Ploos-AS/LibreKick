@@ -12,8 +12,8 @@ PROBE_END=0x3E00
 ADDTASK_OFF=0x3E00
 ADDTASK_END=0x3E40
 
-# Classic ExecBase layout: TaskReady follows PortList at +0x174.
-TASK_READY=m.EXEC_BASE+0x174
+# Classic 68k ExecBase layout: ThisTask=$114, TaskReady=$196, TaskWait=$1A4.
+TASK_READY=m.EXEC_BASE+0x196
 TASK_A=0x0000C100
 TASK_B=0x0000C200
 TS_READY=3
