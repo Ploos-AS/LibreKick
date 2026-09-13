@@ -8,7 +8,7 @@ assert b'LIBREKICK-M2.34\0EXEC-ADDTASK-READY\0' in data
 assert b'exec.library\0LibreKick M2.34 AddTask ready-list registration slice 40.34\0' in data
 
 routine=data[0x3E00:0x3E40]
-assert bytes.fromhex('41F900003574') in routine, 'missing TaskReady address load'
+assert bytes.fromhex('41F900003596') in routine, 'missing classic ExecBase TaskReady address load'
 assert bytes.fromhex('4EAEFEF2') in routine, 'missing Enqueue LVO -270 call'
 assert bytes.fromhex('137C0003000F') in routine, 'missing tc_State=TS_READY store'
 assert bytes.fromhex('20094E75') in routine, 'missing AddTask return task pointer'
@@ -22,8 +22,8 @@ vec_sig=(bytes.fromhex('23FC')+struct.pack('>I',0x4EF90000|((vec_target>>16)&0xf
          struct.pack('>H',vec_target&0xffff)+struct.pack('>I',vec_addr+4))
 assert vec_sig in probe, 'missing AddTask LVO -282 JMP vector install'
 
-# TaskReady classic ExecBase offset and two prepared Task nodes.
-assert struct.pack('>I',0x00003574) in probe, 'missing ExecBase->TaskReady reference'
+# Classic 68k ExecBase TaskReady is at +$196: $3400+$196=$3596.
+assert struct.pack('>I',0x00003596) in probe, 'missing ExecBase->TaskReady reference'
 for addr in (0x0000C100,0x0000C200):
     assert struct.pack('>I',addr) in probe, f'missing task address {addr:08x}'
 assert probe.count(bytes.fromhex('4EAEFEE6')) >= 2, 'expected two AddTask calls'
