@@ -12,8 +12,12 @@ def cmpabsw(c,v,a):
 def addmemlist_code():
  q=bytearray(bytes.fromhex('2F032F042F0A2F0B2600'))
  q+=bytes.fromhex('0C8300000028'); small=branch(q,0x6500)
- q+=bytes.fromhex('2839')+struct.pack('>I',DYN_HEAD)+bytes.fromhex('208442A80004114200092149000A3141000E45E80020214A0010214A00142808D883214400180483000000202143001C4292254300044A84')
- noold=branch(q,0x6700); q+=bytes.fromhex('264427480004'); pub=len(q)
+ # Keep the previous dynamic-list head in A3. D4 is reused below while
+ # calculating mh_Upper, so storing the old head in D4 corrupted the link and
+ # caused the second AddMemList() call to update (mh_Upper+4) instead of the
+ # previous header's ln_Pred field.
+ q+=bytes.fromhex('2679')+struct.pack('>I',DYN_HEAD)+bytes.fromhex('208B42A80004114200092149000A3141000E45E80020214A0010214A00142808D883214400180483000000202143001C429225430004280B4A84')
+ noold=branch(q,0x6700); q+=bytes.fromhex('27480004'); pub=len(q)
  q+=bytes.fromhex('23C8')+struct.pack('>I',DYN_HEAD); out=len(q); q+=bytes.fromhex('265F245F281F261F4E75')
  patch(q,small,out); patch(q,noold,pub); return bytes(q)
 def avail_wrapper_code():
