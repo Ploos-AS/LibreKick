@@ -11,28 +11,33 @@ IDENT=b'exec.library\0LibreKick M2.20 AllocMem no-region semantics slice 40.20\0
 
 def alloc_wrapper_code_m220():
     """Explicit CHIP/FAST stay strict; no region bits prefer FAST, then CHIP, then any dynamic region."""
-    q=bytearray(bytes.fromhex('2F022F032F042F082F09'))      # d2,d3,d4,a0,a1
+    # D5 is a dedicated dynamic-region mode register. Keep it separate from D4,
+    # which is scratch for each MemHeader's mh_Attributes. This matters when an
+    # explicit CHIP traversal skips a FAST header: reusing D4 for both mode and
+    # attributes would turn the next comparison into FAST and could allocate
+    # from the wrong region.
+    q=bytearray(bytes.fromhex('2F022F032F042F052F082F09'))  # d2,d3,d4,d5,a0,a1
     q+=bytes.fromhex('24002601')                             # d2=size d3=requirements
 
     # CHIP|FAST is unsatisfiable.
     q+=bytes.fromhex('08030002'); has_fast=m.branch(q,0x6600)
     q+=bytes.fromhex('08030001'); has_chip=m.branch(q,0x6600)
 
-    # No explicit region: FAST first, then CHIP, then any matching dynamic header.
+    # No explicit region: FAST first, then CHIP, then any dynamic header.
     q+=bytes.fromhex('2002')
     q+=bytes.fromhex('4EB9')+struct.pack('>I',m.ROM_BASE+m.FAST_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); got_nf_fast=m.branch(q,0x6600)
     q+=bytes.fromhex('2002')
     q+=bytes.fromhex('4EB9')+struct.pack('>I',m.ROM_BASE+m.CHIP_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); got_nf_chip=m.branch(q,0x6600)
-    q+=bytes.fromhex('7800'); to_dyn_any=m.branch(q,0x6000) # d4 mode: 0 any
+    q+=bytes.fromhex('7A00'); to_dyn_any=m.branch(q,0x6000) # d5 mode: 0 any
 
     # Explicit CHIP.
     chip=len(q)
     q+=bytes.fromhex('2002')
     q+=bytes.fromhex('4EB9')+struct.pack('>I',m.ROM_BASE+m.CHIP_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); got_chip=m.branch(q,0x6600)
-    q+=bytes.fromhex('7802'); to_dyn_chip=m.branch(q,0x6000) # d4 mode: MEMF_CHIP
+    q+=bytes.fromhex('7A02'); to_dyn_chip=m.branch(q,0x6000) # d5 mode: MEMF_CHIP
 
     # Explicit FAST; reject CHIP|FAST.
     fast=len(q)
@@ -40,15 +45,15 @@ def alloc_wrapper_code_m220():
     q+=bytes.fromhex('2002')
     q+=bytes.fromhex('4EB9')+struct.pack('>I',m.ROM_BASE+m.FAST_ALLOC_OFF)
     q+=bytes.fromhex('4A80'); got_fast=m.branch(q,0x6600)
-    q+=bytes.fromhex('7804')                                 # d4 mode: MEMF_FAST
+    q+=bytes.fromhex('7A04')                                 # d5 mode: MEMF_FAST
 
-    # Linked dynamic traversal. mode=0 accepts any region; mode=2/4 filters attrs.
+    # Linked dynamic traversal. D5 remains invariant; D4 is per-header attrs.
     dyn=len(q)
     q+=bytes.fromhex('2079')+struct.pack('>I',m.DYN_HEAD)
     loop=len(q)
     q+=bytes.fromhex('20084A80'); no_dyn=m.branch(q,0x6700)
-    q+=bytes.fromhex('4A84'); mode_any=m.branch(q,0x6700)
-    q+=bytes.fromhex('32043828000E')                         # d1=mode; d4=attrs.w
+    q+=bytes.fromhex('4A85'); mode_any=m.branch(q,0x6700)
+    q+=bytes.fromhex('32053828000E')                         # d1=mode; d4=attrs.w
     q+=bytes.fromhex('B284'); attr_ok=m.branch(q,0x6700)     # attrs == mode in current single-class model
     adv=len(q); q+=bytes.fromhex('2050'); again=m.branch(q,0x6000)
     try_dyn=len(q)
@@ -65,7 +70,7 @@ def alloc_wrapper_code_m220():
     q+=bytes.fromhex('2040')
     q+=bytes.fromhex('0682000000070282FFFFFFF8')
     clear_loop=len(q); q+=bytes.fromhex('42985982'); more=m.branch(q,0x6600)
-    done=len(q); q+=bytes.fromhex('225F205F281F261F241F4E75')
+    done=len(q); q+=bytes.fromhex('225F205F2A1F281F261F241F4E75')
     bad=len(q); q+=bytes.fromhex('7000'); bad_done=m.branch(q,0x6000)
 
     m.patch(q,has_fast,fast); m.patch(q,has_chip,chip)
