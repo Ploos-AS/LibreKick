@@ -17,6 +17,10 @@ boot=data[8:0x0B00]
 assert bytes.fromhex('203C00000180') in boot
 for value in (0x00009020,0x00009220,0x000094A0):
     assert struct.pack('>I',value) in boot
+# The unchanged tail chunk at $94a0 is $b60 bytes. mh_Free after consuming the
+# middle $180 chunk is $c60, so the probe must not conflate these two values.
+assert struct.pack('>I',0x00000B60) in boot, 'missing corrected tail-chunk size expectation'
+assert struct.pack('>I',0x00000C60) in boot, 'missing post-allocation mh_Free expectation'
 assert bytes.fromhex('33FC00F000DFF180') in boot
 assert bytes.fromhex('33FC000F00DFF18060FE') in boot
 # Kickstart checksum must remain all ones.
