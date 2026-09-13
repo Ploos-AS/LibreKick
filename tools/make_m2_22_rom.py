@@ -38,8 +38,8 @@ def build():
     # Exhaust static FAST, then lay out four dynamic allocations:
     # A0=$9020/$100, A1=$9120/$100, A2=$9220/$180, A3=$93a0/$100.
     # Free A0 and A2 only. The free list is then:
-    #   $9020/$100 -> $9220/$180 -> $94a0/$c60
-    # with A1 and A3 still live separators.
+    #   $9020/$100 -> $9220/$180 -> $94a0/$b60
+    # with A1 and A3 still live separators. Total mh_Free is $de0.
     alloc(m.FAST_SIZE,m.MEMF_FAST,m.FAST_BASE)
     alloc(0x100,m.MEMF_FAST,m.APAY)
     alloc(0x100,m.MEMF_FAST,m.APAY+0x100)
@@ -48,6 +48,7 @@ def build():
     free(m.APAY,0x100)
     free(m.APAY+0x200,0x180)
 
+    tail_bytes=m.AFREE-0x480
     fails += [
         m.cmpabs(c,m.APAY,m.ABASE+m.MH_FIRST),
         m.cmpabs(c,m.APAY+0x200,m.APAY),
@@ -58,14 +59,16 @@ def build():
     ]
 
     # Exact $180 request skips the $100 head and consumes the second free
-    # chunk whole. The predecessor must now point directly to the tail chunk.
+    # chunk whole. The predecessor must now point directly to the unchanged
+    # tail chunk. mh_Free drops by $180, but the tail chunk itself remains
+    # $b60; these are deliberately distinct invariants.
     alloc(0x180,m.MEMF_FAST,m.APAY+0x200)
     fails += [
         m.cmpabs(c,m.APAY,m.ABASE+m.MH_FIRST),
         m.cmpabs(c,m.APAY+0x480,m.APAY),
         m.cmpabs(c,0x100,m.APAY+4),
         m.cmpabs(c,0,m.APAY+0x480),
-        m.cmpabs(c,m.AFREE-0x380,m.APAY+0x484),
+        m.cmpabs(c,tail_bytes,m.APAY+0x484),
         m.cmpabs(c,m.AFREE-0x380,m.ABASE+m.MH_FREE),
     ]
 
