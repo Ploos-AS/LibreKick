@@ -67,6 +67,22 @@ def alloc_wrapper_code_m220():
 
 def build():
     image=bytearray(p.build())
+
+    # M2.17, M2.18 and M2.19 each retain a stable blue failure loop. Recolor
+    # those three inherited gates before changing AllocMem so CI tells us which
+    # already-qualified slice regressed. This is diagnostic only and leaves all
+    # branch targets/control flow untouched.
+    inherited_fail=bytes.fromhex('33FC000F00DFF18060FE')
+    positions=[]; start=8
+    while True:
+        pos=image.find(inherited_fail,start,0x0B00)
+        if pos<0: break
+        positions.append(pos); start=pos+len(inherited_fail)
+    if len(positions)!=3:
+        raise ValueError(f'M2.20 expected 3 inherited fail gates, found {len(positions)}')
+    for pos,color in zip(positions,(0x0a00,0x0aa0,0x0a0a)):
+        struct.pack_into('>H',image,pos+2,color)
+
     code=alloc_wrapper_code_m220()
     if len(code)>0x100: raise ValueError('M2.20 AllocMem wrapper exceeds fixed slot')
     image[0x0B00:0x0C00]=b'\xff'*0x100
@@ -77,7 +93,8 @@ def build():
     gp=boot.rfind(sig)
     if gp<0: raise ValueError('M2.19 final success gate not found')
     good_abs=8+gp; branch_pos=good_abs+8
-    fail_sig=bytes.fromhex('33FC000F00DFF18060FE')
+    # M2.19 is the third inherited gate and has been recolored to 0x0a0a.
+    fail_sig=bytes.fromhex('33FC0A0A00DFF18060FE')
     fp=boot.find(fail_sig,gp)
     if fp<0: raise ValueError('M2.19 final fail gate not found')
     test_abs=8+fp+len(fail_sig)
@@ -89,9 +106,6 @@ def build():
     def free(addr,size):
         c.extend(bytes.fromhex('227C')+struct.pack('>I',addr)+bytes.fromhex('203C')+struct.pack('>I',size)+bytes.fromhex('4EAEFF2E'))
 
-    # Keep allocations live while driving the fallback chain. This keeps the
-    # M2.20 probe focused on AllocMem routing rather than re-testing partial
-    # FreeMem coalescing, which is already qualified by earlier milestones.
     alloc(0x100,0,m.FAST_BASE)
     alloc(m.FAST_SIZE-0x100,m.MEMF_FAST,m.FAST_BASE+0x100)
     alloc(0x100,0,m.MEM_BASE)
@@ -99,14 +113,10 @@ def build():
     alloc(0x100,0,m.APAY)
     alloc(0x100,m.MEMF_CHIP|m.MEMF_FAST,0)
 
-    # Restore every block after all routing assertions have completed.
     free(m.APAY,0x100)
     free(m.FAST_BASE+0x100,m.FAST_SIZE-0x100); free(m.FAST_BASE,0x100)
     free(m.MEM_BASE+0x100,m.MEM_SIZE-0x100); free(m.MEM_BASE,0x100)
 
-    # Own-stage failures deliberately avoid blue. Blue is reserved by inherited
-    # M2.17-M2.19 probes, so a blue CI screen now proves failure happened before
-    # this M2.20 gate was reached.
     c+=m.mw(0x00f0,m.COLOR00); ok=m.branch(c,0x6000)
     fail_colors=(0x0f00,0x0ff0,0x0f0f,0x00ff,0x0888,0x0f80)
     fail_offsets=[]
