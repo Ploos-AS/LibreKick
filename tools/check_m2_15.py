@@ -22,17 +22,10 @@ assert data[IDENT_OFF:IDENT_OFF+len(IDENT)]==IDENT
 boot=data[8:0x0B00]
 assert boot.count(bytes.fromhex('4EAEFD96'))>=2, 'missing two AddMemList() calls'
 
-# Check the concrete M2.15 bootstrap instructions instead of requiring every
-# expected numeric result to occur as a standalone 32-bit byte string. Some
-# values are materialized through instruction operands/derived arithmetic, so
-# the old raw-literal scan produced false negatives despite a valid ROM.
 need(boot, bytes.fromhex('207C')+struct.pack('>I',ABASE), 'dynamic FAST A base load')
 need(boot, bytes.fromhex('207C')+struct.pack('>I',BBASE), 'dynamic CHIP B base load')
 need(boot, struct.pack('>I',DYN_HEAD), 'dynamic MemList head reference')
 
-# The runtime probe must contain the three post-registration AvailMem expected
-# totals and the base-only MEMF_LARGEST expectation. cmpd0() encodes these as
-# CMP.L #imm,D0 (0c80 + 32-bit immediate).
 for value,name in (
     (0x1FE0,'FAST total after registration'),
     (0x17E0,'CHIP total after registration'),
@@ -42,8 +35,9 @@ for value,name in (
     need(boot, bytes.fromhex('0C80')+struct.pack('>I',value), name)
 
 add=data[0x1400:0x1500]; avail=data[0x0D00:0x0E00]
-need(add, struct.pack('>I',DYN_HEAD), 'AddMemList dynamic-head access')
-need(add, bytes.fromhex('2084'), 'AddMemList ln_Succ store')
+need(add, bytes.fromhex('2679')+struct.pack('>I',DYN_HEAD), 'AddMemList old-head load into A3')
+need(add, bytes.fromhex('208B'), 'AddMemList ln_Succ store from preserved old head')
+need(add, bytes.fromhex('280B4A84'), 'AddMemList old-head null test without TST on address register')
 need(add, bytes.fromhex('27480004'), 'AddMemList old-head ln_Pred update')
 need(avail, struct.pack('>I',DYN_HEAD), 'AvailMem dynamic-head access')
 need(avail, bytes.fromhex('2050'), 'AvailMem linked-list advance')
