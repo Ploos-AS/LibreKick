@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_18.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.18 qualifies AvailMem MEMF_LARGEST across static and linked dynamic MemHeaders.
+# Green means dynamic largest-block traversal and attribute filtering passed.
