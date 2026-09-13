@@ -11,14 +11,18 @@ dyn=data[0x1600:0x1800]
 assert bytes.fromhex('0C8300000008') in dyn, 'missing whole-chunk threshold'
 assert bytes.fromhex('2451') in dyn, 'missing current.next load'
 assert bytes.fromhex('214A0010') in dyn, 'missing mh_First replacement path'
-# Runtime probe must exercise an exact-size $180 head allocation and verify the
+# Runtime probe now lives in a dedicated ROM window because the bootstrap area
+# is full. It must exercise an exact-size $180 head allocation and verify the
 # tail address/size separately from aggregate mh_Free accounting.
-boot=data[8:0x0B00]
-assert bytes.fromhex('203C00000180') in boot
+probe=data[0x2200:0x2400]
+assert bytes.fromhex('203C00000180') in probe
 for value in (0x00009020,0x000093A0,0x00000C60,0x00000DE0):
-    assert struct.pack('>I',value) in boot
-assert bytes.fromhex('33FC00F000DFF180') in boot
-assert bytes.fromhex('33FC000F00DFF18060FE') in boot
+    assert struct.pack('>I',value) in probe
+assert bytes.fromhex('33FC00F000DFF180') in probe
+assert bytes.fromhex('33FC000F00DFF18060FE') in probe
+# Bootstrap must branch forward into the relocated probe window.
+boot=data[8:0x0B00]
+assert struct.pack('>h',0x2200-(boot.rfind(bytes.fromhex('33FC00F000DFF1806000'))+8+8+2)) in boot
 # Kickstart checksum must remain all ones.
 def ones(t,v):
     t+=v
