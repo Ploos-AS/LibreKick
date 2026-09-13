@@ -1,0 +1,9 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_16.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.16 qualifies AllocMem traversal across linked dynamic MemHeaders.
+# Green means static FAST exhaustion falls through C -> B -> A and allocates
+# from the later matching FAST region without corrupting skipped headers.
