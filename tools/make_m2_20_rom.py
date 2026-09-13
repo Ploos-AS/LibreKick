@@ -97,11 +97,9 @@ def build():
     alloc(0x100,m.MEMF_CHIP|m.MEMF_FAST,0)
     free(m.FAST_BASE,m.FAST_SIZE); free(m.MEM_BASE,m.MEM_SIZE)
 
-    # Five distinct failure colors localize exactly which M2.20 assertion
-    # fails on CI without needing guest-side logging. 12-bit Amiga RGB:
-    # 1 red, 2 blue, 3 yellow, 4 magenta, 5 cyan.
+    # Six distinct failure colors localize exactly which M2.20 assertion fails.
     c+=m.mw(0x00f0,m.COLOR00); ok=m.branch(c,0x6000)
-    fail_colors=(0x0f00,0x000f,0x0ff0,0x0f0f,0x00ff)
+    fail_colors=(0x0f00,0x000f,0x0ff0,0x0f0f,0x00ff,0x0888)
     fail_offsets=[]
     for color in fail_colors:
         fail_offsets.append(len(c))
