@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_17.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.17 qualifies FreeMem routing across linked dynamic MemHeaders.
+# Green means dynamic A/B frees are routed, inserted and coalesced correctly.
