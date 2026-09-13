@@ -15,14 +15,16 @@ assert alloc.find(fast_call) < alloc.find(chip_call), 'no-region path does not p
 # Dynamic linked traversal remains present.
 assert struct.pack('>I',0x4C00) in alloc
 assert bytes.fromhex('2050') in alloc
-# Regression guards: D5 is the invariant dynamic-region mode, while D4 is
-# explicitly zeroed before loading the WORD-sized mh_Attributes field. A long
-# compare must therefore never see stale upper bits from caller state.
+# Regression guards: D5 is the invariant dynamic-region mode. It must be
+# copied to D1 with MOVE.L, not MOVE.W, because D1 originally contains the
+# full requirements mask and upper bits such as MEMF_CLEAR would survive a
+# word-sized copy. D4 is separately zeroed before loading mh_Attributes.w.
 assert bytes.fromhex('7A00') in alloc, 'missing no-region D5 mode'
 assert bytes.fromhex('7A02') in alloc, 'missing CHIP D5 mode'
 assert bytes.fromhex('7A04') in alloc, 'missing FAST D5 mode'
 assert bytes.fromhex('4A85') in alloc, 'dynamic any-mode test is not using D5'
-assert bytes.fromhex('320578003828000E') in alloc, 'dynamic attributes are not zero-extended before comparison'
+assert bytes.fromhex('220578003828000E') in alloc, 'dynamic mode/attributes are not normalized before long comparison'
+assert bytes.fromhex('320578003828000E') not in alloc, 'unsafe MOVE.W D5,D1 leaves stale requirements bits in D1'
 # Runtime probe carries no-region requests (D1=0) and CHIP|FAST rejection test.
 boot=data[8:0x0B00]
 assert bytes.fromhex('223C00000000') in boot
