@@ -15,6 +15,14 @@ assert alloc.find(fast_call) < alloc.find(chip_call), 'no-region path does not p
 # Dynamic linked traversal remains present.
 assert struct.pack('>I',0x4C00) in alloc
 assert bytes.fromhex('2050') in alloc
+# Regression guard: D5 is the invariant dynamic-region mode and D4 is only
+# per-header mh_Attributes scratch. This prevents a skipped FAST header from
+# changing an explicit CHIP traversal into FAST on the following header.
+assert bytes.fromhex('7A00') in alloc, 'missing no-region D5 mode'
+assert bytes.fromhex('7A02') in alloc, 'missing CHIP D5 mode'
+assert bytes.fromhex('7A04') in alloc, 'missing FAST D5 mode'
+assert bytes.fromhex('4A85') in alloc, 'dynamic any-mode test is not using D5'
+assert bytes.fromhex('32053828000E') in alloc, 'dynamic filter does not preserve mode separately from attributes'
 # Runtime probe carries no-region requests (D1=0) and CHIP|FAST rejection test.
 boot=data[8:0x0B00]
 assert bytes.fromhex('223C00000000') in boot
