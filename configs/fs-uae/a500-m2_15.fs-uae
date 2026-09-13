@@ -1,0 +1,8 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_15.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.15 qualifies linked dynamic MemList registration and filtered AvailMem traversal.
+# Green means both dynamic headers are linked and accounted correctly.
