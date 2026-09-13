@@ -83,8 +83,33 @@ def alloc_wrapper_code_m220():
     return bytes(q)
 
 
+def replace_once(image, old, new, what, start=8, end=0x0B00):
+    pos=image.find(old,start,end)
+    if pos<0: raise ValueError(f'M2.20 could not locate {what}')
+    if image.find(old,pos+1,end)>=0: raise ValueError(f'M2.20 ambiguous {what}')
+    image[pos:pos+len(old)]=new
+
+
 def build():
     image=bytearray(p.build())
+
+    # M2.11 embedded a regression probe for the old deterministic no-region
+    # CHIP preference. M2.20 intentionally changes that contract to FAST-first,
+    # so adapt the inherited probe itself before installing the new wrapper.
+    # At this point the M2.11 probe has 0x80 bytes allocated at FAST_BASE and
+    # therefore the next 0x20 no-region allocation must be FAST_BASE+0x80.
+    old_alloc_probe=(bytes.fromhex('203C00000020223C000000004EAEFF3A0C80')+
+                     struct.pack('>I',m.MEM_BASE+0x40))
+    new_alloc_probe=(bytes.fromhex('203C00000020223C000000004EAEFF3A0C80')+
+                     struct.pack('>I',m.FAST_BASE+0x80))
+    replace_once(image,old_alloc_probe,new_alloc_probe,'inherited M2.11 no-region expectation')
+
+    old_free=(bytes.fromhex('227C')+struct.pack('>I',m.MEM_BASE+0x40)+
+              bytes.fromhex('203C000000204EAEFF2E'))
+    new_free=(bytes.fromhex('227C')+struct.pack('>I',m.FAST_BASE+0x80)+
+              bytes.fromhex('203C000000204EAEFF2E'))
+    replace_once(image,old_free,new_free,'inherited M2.11 no-region free')
+
     code=alloc_wrapper_code_m220()
     if len(code)>0x100: raise ValueError('M2.20 AllocMem wrapper exceeds fixed slot')
     image[0x0B00:0x0C00]=b'\xff'*0x100
