@@ -12,10 +12,13 @@ assert bytes.fromhex('22084A81') in dyn, 'missing successor-presence test'
 assert bytes.fromhex('2449D5C2') in dyn, 'missing new-end calculation'
 assert bytes.fromhex('22280004D3A90004') in dyn, 'missing successor byte merge'
 assert bytes.fromhex('2450228A') in dyn, 'missing successor relink'
-# Probe: three $100 allocations, then successor-only merge at $9220 to $DE0.
+# Probe: three $100 allocations. Runtime checks then qualify successor-only
+# merges rooted at $9220/$DE0 and $9120/$EE0, followed by full restore to
+# $9020/$FE0. The pre-merge tail $9320/$CE0 is setup state only and is not
+# encoded as an immediate in this probe, so it must not be required here.
 probe=data[0x2800:0x2A00]
 assert probe.count(bytes.fromhex('203C00000100')) >= 3
-for value in (0x00009020,0x00009120,0x00009220,0x00009320,0x00000CE0,0x00000DE0,0x00000EE0,0x00000FE0):
+for value in (0x00009020,0x00009120,0x00009220,0x00000DE0,0x00000EE0,0x00000FE0):
     assert struct.pack('>I',value) in probe
 assert bytes.fromhex('33FC00F000DFF180') in probe
 assert bytes.fromhex('33FC000F00DFF18060FE') in probe
