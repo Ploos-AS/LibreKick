@@ -16,9 +16,16 @@ assert bytes.fromhex('70004E75') in routine, 'missing clean named-lookup NULL re
 assert bytes.fromhex('203900004C104E75') in routine, 'missing current-task pointer load'
 
 probe=data[0x3000:0x3200]
-# Runtime vector install must target Exec LVO -294 and ROM routine $F83200.
-assert struct.pack('>I',0x00F83200) in probe, 'missing FindTask vector target'
-assert struct.pack('>I',0x00002C00-294) in probe, 'missing FindTask vector address'
+# Runtime vector install uses make_m2_17_rom.vector(): it writes a JMP absolute
+# instruction as two RAM writes, so the target address is deliberately split
+# across the JMP opcode/high word and the following low-word write rather than
+# appearing as one contiguous 32-bit immediate in the probe byte stream.
+vec_addr=0x00002C00-294
+vec_target=0x00F83200
+vec_sig=(bytes.fromhex('23FC')+struct.pack('>I',0x4EF90000|((vec_target>>16)&0xffff))+
+         struct.pack('>I',vec_addr)+bytes.fromhex('33FC')+
+         struct.pack('>H',vec_target&0xffff)+struct.pack('>I',vec_addr+4))
+assert vec_sig in probe, 'missing FindTask LVO -294 JMP vector install'
 assert struct.pack('>I',0x0000C000) in probe, 'missing bootstrap task pointer'
 assert struct.pack('>I',0x00004C10) in probe, 'missing current-task storage cell'
 assert probe.count(bytes.fromhex('4EAEFEDA')) >= 3, 'expected three FindTask calls'
