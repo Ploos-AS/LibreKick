@@ -33,7 +33,10 @@ alloc=data[0x0B00:0x0C00]
 need(alloc,struct.pack('>I',DYN_HEAD),'AllocMem dynamic-head load')
 need(alloc,bytes.fromhex('3828000E'),'dynamic attribute read')
 need(alloc,bytes.fromhex('4EB9')+struct.pack('>I',0x00F80000+DYN_ALLOC_OFF),'generic dynamic allocator call')
-need(alloc,bytes.fromhex('2051'),'linked-header advance')
+# Traversal must advance from the current MemHeader in A0. Advancing through
+# A1 is unsafe on attribute-mismatch paths because A1 may still reference the
+# previously attempted header, which can trap the walk on the same node.
+need(alloc,bytes.fromhex('2050'),'linked-header advance from current A0')
 need(alloc,bytes.fromhex('08040002'),'FAST attribute filter')
 need(alloc,bytes.fromhex('08040001'),'CHIP attribute filter')
 
