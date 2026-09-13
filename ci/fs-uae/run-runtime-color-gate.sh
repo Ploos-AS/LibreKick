@@ -28,19 +28,37 @@ printf '%s\n' "$rom" > "$OUT/rom.txt"
 printf '%s\n' "$config" > "$OUT/config.txt"
 fs-uae --version > "$OUT/fs-uae-version.txt" 2>&1 || true
 
+pid=""
+cleanup() {
+  [[ -n "${pid:-}" ]] || return 0
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+  fi
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -KILL "$pid" 2>/dev/null || true
+  fi
+  wait "$pid" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
 # FS-UAE deliberately remains in the ROM's final diagnostic loop, so run it in
 # the background, capture the diagnostic framebuffer, then terminate it.
 fs-uae "$config" > "$OUT/fs-uae.log" 2>&1 &
 pid=$!
-cleanup() {
-  kill "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
-}
-trap cleanup EXIT
 
 wid=""
-for _ in $(seq 1 50); do
+for _ in $(seq 1 100); do
+  # Prefer the normal FS-UAE title, but fall back to any window owned by the
+  # emulator process. This avoids false timeouts if a distro/version changes
+  # the title string.
   wid=$(xdotool search --name 'FS-UAE' 2>/dev/null | head -n1 || true)
+  if [[ -z "$wid" ]]; then
+    wid=$(xdotool search --pid "$pid" 2>/dev/null | head -n1 || true)
+  fi
   [[ -n "$wid" ]] && break
   if ! kill -0 "$pid" 2>/dev/null; then
     echo "FS-UAE exited before creating a window" >&2
@@ -53,6 +71,7 @@ done
 if [[ -z "$wid" ]]; then
   echo "Timed out waiting for FS-UAE window" >&2
   cat "$OUT/fs-uae.log" >&2 || true
+  printf 'result=FAIL\nreason=window-timeout\n' > "$OUT/result.txt"
   exit 1
 fi
 
@@ -96,6 +115,8 @@ print(summary, end="")
 # the final diagnostic color. Requiring a majority-green image is tolerant of
 # window decoration while still rejecting blue/red/frozen-startup screens.
 if green_ratio < 0.55:
+    with result_path.open("a") as f:
+        f.write("result=FAIL\n")
     raise SystemExit("FS-UAE runtime gate FAIL: diagnostic screen is not green")
 
 print("FS-UAE runtime gate PASS: green diagnostic screen")
@@ -104,4 +125,5 @@ with result_path.open("a") as f:
 PY
 
 cleanup
-trap - EXIT
+pid=""
+trap - EXIT INT TERM
