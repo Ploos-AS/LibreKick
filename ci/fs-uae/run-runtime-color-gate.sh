@@ -2,7 +2,6 @@
 set -euo pipefail
 
 OUT=build/fs-uae/runtime
-mkdir -p "$OUT"
 
 # The default Makefile always points at the current qualification ROM.
 rom=$(awk '$1 == "ROM" && $2 == ":=" {print $3; exit}' Makefile)
@@ -20,13 +19,14 @@ if [[ ! -f "$config" ]]; then
   exit 2
 fi
 
+# Build and run the static checker first. 'make clean' removes build/, so the
+# runtime evidence directory must be created only after this step.
+make clean check
+mkdir -p "$OUT"
+
 printf '%s\n' "$rom" > "$OUT/rom.txt"
 printf '%s\n' "$config" > "$OUT/config.txt"
 fs-uae --version > "$OUT/fs-uae-version.txt" 2>&1 || true
-
-# Build and run the static checker first. Runtime is meaningful only for a ROM
-# that passed the structural/checksum gate.
-make clean check
 
 # FS-UAE deliberately remains in the ROM's final diagnostic loop, so run it in
 # the background, capture the diagnostic framebuffer, then terminate it.
