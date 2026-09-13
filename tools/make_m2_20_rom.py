@@ -38,7 +38,11 @@ def alloc_wrapper_code_m220():
     loop=len(q)
     q+=bytes.fromhex('20084A80'); no_dyn=m.branch(q,0x6700)
     q+=bytes.fromhex('4A85'); mode_any=m.branch(q,0x6700)
-    q+=bytes.fromhex('320578003828000E')
+    # D1 originally carries the full requirements mask (e.g. MEMF_CLEAR in the
+    # upper word). MOVE.W D5,D1 only replaced the low word, leaving stale upper
+    # bits and making CMP.L reject an otherwise matching dynamic FAST/CHIP
+    # MemHeader. Copy the complete normalized mode instead.
+    q+=bytes.fromhex('220578003828000E')
     q+=bytes.fromhex('B284'); attr_ok=m.branch(q,0x6700)
     adv=len(q); q+=bytes.fromhex('2050'); again=m.branch(q,0x6000)
     try_dyn=len(q)
