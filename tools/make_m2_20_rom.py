@@ -53,7 +53,9 @@ def alloc_wrapper_code_m220():
     loop=len(q)
     q+=bytes.fromhex('20084A80'); no_dyn=m.branch(q,0x6700)
     q+=bytes.fromhex('4A85'); mode_any=m.branch(q,0x6700)
-    q+=bytes.fromhex('32053828000E')                         # d1=mode; d4=attrs.w
+    # mh_Attributes is a WORD. Clear D4 before MOVE.W so the subsequent long
+    # compare cannot inherit stale upper bits from the caller-saved D4 value.
+    q+=bytes.fromhex('320578003828000E')                     # d1=mode; d4=zero-extended attrs.w
     q+=bytes.fromhex('B284'); attr_ok=m.branch(q,0x6700)     # attrs == mode in current single-class model
     adv=len(q); q+=bytes.fromhex('2050'); again=m.branch(q,0x6000)
     try_dyn=len(q)
@@ -86,10 +88,6 @@ def alloc_wrapper_code_m220():
 def build():
     image=bytearray(p.build())
 
-    # M2.19's inherited qualification image already reflects the current
-    # chained runtime probes. Do not rewrite an obsolete M2.11 byte pattern
-    # here: that probe is no longer present verbatim by M2.19, and attempting
-    # to patch it made the generator fail before FS-UAE could start.
     code=alloc_wrapper_code_m220()
     if len(code)>0x100: raise ValueError('M2.20 AllocMem wrapper exceeds fixed slot')
     image[0x0B00:0x0C00]=b'\xff'*0x100
