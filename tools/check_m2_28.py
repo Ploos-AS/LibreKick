@@ -9,7 +9,7 @@ assert b'exec.library\0LibreKick M2.28 dynamic non-coalescing FreeMem insertion 
 # Dynamic FreeMem core must retain sorted insertion and both optional merge paths.
 dyn=data[0x1800:0x2000]
 assert bytes.fromhex('268A') in dyn, 'missing predecessor next-link insertion'
-assert bytes.fromhex('214A0010') in dyn, 'missing mh_First insertion path'
+assert bytes.fromhex('29490010') in dyn, 'missing mh_First insertion path'
 assert bytes.fromhex('22084A81') in dyn, 'missing successor-presence test'
 assert bytes.fromhex('220B4A81') in dyn, 'missing predecessor-presence test'
 # Probe: four $100 allocations, then free $9120 without adjacency.
