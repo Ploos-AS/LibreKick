@@ -89,17 +89,26 @@ def build():
     def free(addr,size):
         c.extend(bytes.fromhex('227C')+struct.pack('>I',addr)+bytes.fromhex('203C')+struct.pack('>I',size)+bytes.fromhex('4EAEFF2E'))
 
-    alloc(0x100,0,m.FAST_BASE); free(m.FAST_BASE,0x100)
-    alloc(m.FAST_SIZE,m.MEMF_FAST,m.FAST_BASE)
-    alloc(0x100,0,m.MEM_BASE); free(m.MEM_BASE,0x100)
-    alloc(m.MEM_SIZE,m.MEMF_CHIP,m.MEM_BASE)
-    alloc(0x100,0,m.APAY); free(m.APAY,0x100)
+    # Keep allocations live while driving the fallback chain. This keeps the
+    # M2.20 probe focused on AllocMem routing rather than re-testing partial
+    # FreeMem coalescing, which is already qualified by earlier milestones.
+    alloc(0x100,0,m.FAST_BASE)
+    alloc(m.FAST_SIZE-0x100,m.MEMF_FAST,m.FAST_BASE+0x100)
+    alloc(0x100,0,m.MEM_BASE)
+    alloc(m.MEM_SIZE-0x100,m.MEMF_CHIP,m.MEM_BASE+0x100)
+    alloc(0x100,0,m.APAY)
     alloc(0x100,m.MEMF_CHIP|m.MEMF_FAST,0)
-    free(m.FAST_BASE,m.FAST_SIZE); free(m.MEM_BASE,m.MEM_SIZE)
 
-    # Six distinct failure colors localize exactly which M2.20 assertion fails.
+    # Restore every block after all routing assertions have completed.
+    free(m.APAY,0x100)
+    free(m.FAST_BASE+0x100,m.FAST_SIZE-0x100); free(m.FAST_BASE,0x100)
+    free(m.MEM_BASE+0x100,m.MEM_SIZE-0x100); free(m.MEM_BASE,0x100)
+
+    # Own-stage failures deliberately avoid blue. Blue is reserved by inherited
+    # M2.17-M2.19 probes, so a blue CI screen now proves failure happened before
+    # this M2.20 gate was reached.
     c+=m.mw(0x00f0,m.COLOR00); ok=m.branch(c,0x6000)
-    fail_colors=(0x0f00,0x000f,0x0ff0,0x0f0f,0x00ff,0x0888)
+    fail_colors=(0x0f00,0x0ff0,0x0f0f,0x00ff,0x0888,0x0f80)
     fail_offsets=[]
     for color in fail_colors:
         fail_offsets.append(len(c))
