@@ -25,20 +25,13 @@ assert bytes.fromhex('7A04') in alloc, 'missing FAST D5 mode'
 assert bytes.fromhex('4A85') in alloc, 'dynamic any-mode test is not using D5'
 assert bytes.fromhex('220578003828000E') in alloc, 'dynamic mode/attributes are not normalized before long comparison'
 assert bytes.fromhex('320578003828000E') not in alloc, 'unsafe MOVE.W D5,D1 leaves stale requirements bits in D1'
-# Runtime probe carries no-region requests (D1=0) and CHIP|FAST rejection test.
+# Runtime probe carries no-region requests (D1=0), CHIP|FAST rejection, a
+# green success marker and the standard blue failure gate.
 boot=data[8:0x0B00]
 assert bytes.fromhex('223C00000000') in boot
 assert bytes.fromhex('223C00000006') in boot
 assert bytes.fromhex('33FC00F000DFF180') in boot
-# M2.20 temporarily recolors the three inherited M2.17-M2.19 fail gates so a
-# CI screenshot identifies which inherited qualification regressed. Do not
-# require the historical blue gate while this diagnostic instrumentation is
-# active.
-for color in (0x0A00,0x0AA0,0x0A0A):
-    assert bytes.fromhex('33FC')+struct.pack('>H',color)+bytes.fromhex('00DFF18060FE') in boot, f'missing inherited diagnostic gate {color:04x}'
-# M2.20's own staged assertion colors must also be present.
-for color in (0x0F00,0x0FF0,0x0F0F,0x00FF,0x0888,0x0F80):
-    assert bytes.fromhex('33FC')+struct.pack('>H',color)+bytes.fromhex('00DFF18060FE') in boot, f'missing M2.20 diagnostic gate {color:04x}'
+assert bytes.fromhex('33FC000F00DFF18060FE') in boot
 def ones(t,v):
     t+=v
     return (t&0xffffffff)+(t>>32)
