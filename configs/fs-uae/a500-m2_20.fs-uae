@@ -1,0 +1,7 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = ../../build/librekick-m2_20.rom
+accuracy = -1
+fullscreen = 0
+window_width = 960
+window_height = 540
