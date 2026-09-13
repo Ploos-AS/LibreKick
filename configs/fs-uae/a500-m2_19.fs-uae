@@ -1,0 +1,9 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = build/librekick-m2_19.rom
+accuracy = 1
+fullscreen = 0
+
+# M2.19 qualifies signed-priority AddMemList insertion.
+# Green means dynamic MemHeaders are linked C(7) -> A(5) -> B(3)
+# with successor/predecessor integrity while M2.18 behavior remains intact.
