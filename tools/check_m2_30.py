@@ -20,7 +20,8 @@ probe=data[0x3000:0x3200]
 # instruction as two RAM writes, so the target address is deliberately split
 # across the JMP opcode/high word and the following low-word write rather than
 # appearing as one contiguous 32-bit immediate in the probe byte stream.
-vec_addr=0x00002C00-294
+# The inherited M2.8+ ExecBase is $3400, so LVO -294 lives at $32DA.
+vec_addr=0x00003400-294
 vec_target=0x00F83200
 vec_sig=(bytes.fromhex('23FC')+struct.pack('>I',0x4EF90000|((vec_target>>16)&0xffff))+
          struct.pack('>I',vec_addr)+bytes.fromhex('33FC')+
