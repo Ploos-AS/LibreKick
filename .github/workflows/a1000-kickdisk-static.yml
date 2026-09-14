@@ -1,0 +1,29 @@
+name: A1000 kickdisk static qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a1000-kickdisk-static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and check A1000.2 WCS payload and kickdisk
+        run: make check-a1000-kickdisk
+
+      - name: Upload A1000.2 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: librekick-a1000.2-kickdisk-static
+          path: |
+            build/a1000/librekick-a1000.2-wcs.bin
+            build/a1000/librekick-a1000.2-kickdisk.adf
+          if-no-files-found: error
