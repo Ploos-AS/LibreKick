@@ -13,12 +13,12 @@ LibreKick maintains explicit ROM variants for individual Amiga model families. A
 
 ## Initial profile registry
 
-| Profile ID | Model family | Baseline CPU | Initial status |
+| Profile ID | Model family | Baseline CPU | Status |
 | --- | --- | --- | --- |
 | `a1000` | Amiga 1000 | 68000 | planned |
-| `a500` | Amiga 500 | 68000 | active baseline |
-| `a500plus` | Amiga 500 Plus | 68000 | planned |
-| `a600` | Amiga 600 | 68000 | planned |
+| `a500` | Amiga 500 | 68000 | emulator-qualified |
+| `a500plus` | Amiga 500 Plus | 68000 | emulator-qualified |
+| `a600` | Amiga 600 | 68000 | buildable; runtime qualification pending |
 | `a1500` | Amiga 1500 | 68000 | planned |
 | `a2000` | Amiga 2000 | 68000 | planned |
 | `a2500-20` | Amiga 2500/20 | 68020-class | planned |
