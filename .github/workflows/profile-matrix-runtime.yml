@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [a500, a500plus, a600]
+        profile: [a1000, a500, a500plus, a600]
 
     name: profile-${{ matrix.profile }}
 
