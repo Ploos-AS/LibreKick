@@ -87,6 +87,9 @@ def runtime_source(out_dir: Path) -> Path:
         moveq   #0,d0
 
         clr.b   STATE_CYL
+        /* Diagnostic split: lime means STATE_CYL write completed but the
+         * following STATE_TRACK write or transition did not. */
+        move.w  #0x08f0,COLOR00
         move.b  #0xff,STATE_TRACK
 """
     if seek_call_old not in text:
