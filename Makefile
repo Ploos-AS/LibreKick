@@ -1,8 +1,9 @@
 PYTHON ?= python3
 BUILD_DIR := build
 ROM := $(BUILD_DIR)/librekick-m2_43.rom
+A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_43-a500.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 profile-a500 qualify-profile-a500
 
 all: $(ROM)
 
@@ -20,6 +21,14 @@ m2_43:
 	mkdir -p $(BUILD_DIR)
 	$(PYTHON) tools/make_m2_43_rom.py $(BUILD_DIR)/librekick-m2_43.rom
 	$(PYTHON) tools/check_m2_43.py $(BUILD_DIR)/librekick-m2_43.rom
+
+# Retained machine-profile builds. These are model-explicit artifacts and must
+# remain available as additional Amiga profiles are introduced.
+profile-a500:
+	$(PYTHON) tools/build_profile.py a500
+
+qualify-profile-a500: profile-a500
+	fs-uae configs/fs-uae/a500-current.fs-uae
 
 # Generic historical M2.x build/qualification targets.
 m2_%:
