@@ -44,8 +44,34 @@
         .equ    SECTOR_MFM,     0x0438
         .equ    MASK_MFM,       0x55555555
 
-        .equ    STAGE_COLOR,    0x0ff0
-        .equ    FAIL_COLOR,     0x0f00
+        /* A1000.3 runtime diagnostic palette.  These are intentionally
+         * vivid and distinct so a headless CI screenshot identifies the
+         * exact stage reached even when the loader blocks instead of
+         * returning through a failure path.
+         *
+         *   yellow   = bootstrap entered
+         *   orange   = waiting for DF0 ready
+         *   cyan     = homing/seek cylinder zero
+         *   blue     = reading manifest sector
+         *   magenta  = validating manifest
+         *   violet   = loading 256 KiB payload
+         *   white    = WCS handoff trampoline
+         *   green    = WCS payload itself (A1000.2 payload)
+         */
+        .equ    COLOR_BOOT,             0x0ff0
+        .equ    COLOR_WAIT_READY,       0x0f80
+        .equ    COLOR_SEEK_ZERO,        0x00ff
+        .equ    COLOR_MANIFEST_READ,    0x000f
+        .equ    COLOR_MANIFEST_CHECK,   0x0f0f
+        .equ    COLOR_PAYLOAD_LOAD,     0x080f
+        .equ    COLOR_WCS_HANDOFF,      0x0fff
+
+        /* Distinct terminal failure colors. */
+        .equ    FAIL_READY_COLOR,       0x0f00
+        .equ    FAIL_SEEK_COLOR,        0x0f40
+        .equ    FAIL_MANIFEST_COLOR,    0x0f08
+        .equ    FAIL_VALIDATE_COLOR,    0x0f0f
+        .equ    FAIL_PAYLOAD_COLOR,     0x080f
 
         .globl  _start
 _start:
@@ -54,52 +80,59 @@ _start:
 
 reset:
         move.w  #0x2700,sr
-        move.w  #STAGE_COLOR,COLOR00
+        move.w  #COLOR_BOOT,COLOR00
 
         /* CIAB port B drives motor/select/side/direction/step. */
         move.b  #0xff,CIAB_DDRB
         /* DF0 selected, motor on, side 0, direction outward, STEP high. */
         move.b  #0x77,CIAB_PRB
+
+        move.w  #COLOR_WAIT_READY,COLOR00
         bsr     wait_ready
         tst.l   d0
-        bne     fail
+        bne     fail_ready
+
+        move.w  #COLOR_SEEK_ZERO,COLOR00
         bsr     seek_cylinder_zero
         tst.l   d0
-        bne     fail
+        bne     fail_seek
 
         clr.b   STATE_CYL
         move.b  #0xff,STATE_TRACK
 
         /* Read and validate sector-0 LibreKick-private manifest. */
+        move.w  #COLOR_MANIFEST_READ,COLOR00
         moveq   #0,d0
         movea.l #MANIFEST,a1
         bsr     load_sector
         tst.l   d0
-        bne     fail
+        bne     fail_manifest
 
+        move.w  #COLOR_MANIFEST_CHECK,COLOR00
         movea.l #MANIFEST,a0
         cmpi.l  #0x4c494252,0(a0)       /* LIBR */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #0x454b4943,4(a0)       /* EKIC */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #0x4b2d4131,8(a0)       /* K-A1 */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #0x30303000,12(a0)      /* 000\0 */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #2,16(a0)               /* format version */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #512,20(a0)             /* payload file offset */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #0x00040000,24(a0)      /* 256 KiB */
-        bne     fail
+        bne     fail_validate
         cmpi.l  #WCS_BASE,28(a0)
-        bne     fail
+        bne     fail_validate
         cmpi.l  #WCS_ENTRY,32(a0)
-        bne     fail
+        bne     fail_validate
         cmpi.l  #RESET_SP,36(a0)
-        bne     fail
+        bne     fail_validate
 
         /* Sectors 1..512 are exactly the 256 KiB WCS payload. */
+        move.w  #COLOR_PAYLOAD_LOAD,COLOR00
         movea.l #WCS_BASE,a1
         moveq   #1,d6
         move.w  #511,d7
@@ -107,12 +140,13 @@ payload_loop:
         move.l  d6,d0
         bsr     load_sector
         tst.l   d0
-        bne     fail
+        bne     fail_payload
         addq.l  #1,d6
         dbf     d7,payload_loop
 
         /* Execute the WCS lock/switch sequence from chip RAM so the mapping
          * can change underneath us safely before the final jump to WCS. */
+        move.w  #COLOR_WCS_HANDOFF,COLOR00
         lea     lock_trampoline(pc),a0
         movea.l #TRAMPOLINE,a1
         move.w  #(lock_trampoline_end-lock_trampoline)/2-1,d0
@@ -121,8 +155,20 @@ copy_trampoline:
         dbf     d0,copy_trampoline
         jmp     TRAMPOLINE
 
-fail:
-        move.w  #FAIL_COLOR,COLOR00
+fail_ready:
+        move.w  #FAIL_READY_COLOR,COLOR00
+        bra.s   fail_hang
+fail_seek:
+        move.w  #FAIL_SEEK_COLOR,COLOR00
+        bra.s   fail_hang
+fail_manifest:
+        move.w  #FAIL_MANIFEST_COLOR,COLOR00
+        bra.s   fail_hang
+fail_validate:
+        move.w  #FAIL_VALIDATE_COLOR,COLOR00
+        bra.s   fail_hang
+fail_payload:
+        move.w  #FAIL_PAYLOAD_COLOR,COLOR00
 fail_hang:
         bra.s   fail_hang
 
@@ -311,6 +357,7 @@ lock_trampoline_end:
         .align  4
 bootstrap_marker:
         .ascii  "LIBREKICK-A1000.3\0DF0-WCS-LOADER\0"
+        .ascii  "DIAG:YEL=BOOT,ORG=READY,CYN=SEEK,BLU=MANIFEST,MAG=CHECK,VIO=PAYLOAD,WHT=HANDOFF,GRN=WCS\0"
 
         /* A1000 bootstrap container is retained as exactly 64 KiB. */
         .org    0x10000,0xff
