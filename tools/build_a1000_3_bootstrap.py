@@ -29,8 +29,8 @@ def runtime_source(out_dir: Path) -> Path:
     """Prepare the bootstrap source with emulator-safe advisory /RDY handling.
 
     Some FS-UAE A1000 bootstrap configurations do not assert CIAA /RDY even
-    with a mounted DF0 image.  /RDY is therefore treated as a spin-up hint;
-    seek, DMA timeout and MFM validation remain the authoritative gates.
+    with a mounted DF0 image. /RDY is therefore treated as a short spin-up
+    hint only; seek, DMA timeout and MFM validation remain authoritative.
     Real-hardware /RDY timing stays a separate qualification requirement.
     """
     text = SOURCE.read_text()
@@ -48,15 +48,15 @@ wait_ready:
         moveq   #0,d0
         rts
 """
-    new = """/* /RDY is advisory here: wait for it when available, otherwise
- * continue after a bounded spin-up interval.  Seek, disk DMA timeout and
- * MFM validation remain authoritative. */
+    new = """/* /RDY is advisory here: sample it for a short bounded interval,
+ * then continue. Seek, disk DMA timeout and MFM validation remain
+ * authoritative, including on emulators that never assert /RDY. */
 wait_ready:
-        move.l  #0x00200000,d0
+        move.w  #0x1000,d0
 1:
         btst    #5,CIAA_PRA
         beq.s   2f
-        subq.l  #1,d0
+        subq.w  #1,d0
         bne.s   1b
 2:
         moveq   #0,d0
