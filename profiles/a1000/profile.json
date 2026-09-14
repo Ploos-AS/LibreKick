@@ -5,11 +5,12 @@
   "cpu": "68000",
   "status": "buildable",
   "boot_architecture": "bootstrap-rom-plus-256k-wcs",
-  "current_milestone": "a1000.2",
+  "current_milestone": "a1000.3",
   "bootstrap_rom_size": 65536,
-  "bootstrap_generator": "tools/make_a1000_0_bootstrap.py",
-  "bootstrap_checker": "tools/check_a1000_0_bootstrap.py",
-  "bootstrap_artifact": "build/a1000/librekick-a1000.1-bootstrap.rom",
+  "bootstrap_generator": "tools/build_a1000_3_bootstrap.py",
+  "bootstrap_checker": "tools/check_a1000_3_bootstrap.py",
+  "bootstrap_source": "src/a1000/bootstrap_a1000_3.S",
+  "bootstrap_artifact": "build/a1000/librekick-a1000.3-bootstrap.rom",
   "bootstrap_fs_uae_config": "configs/fs-uae/a1000-bootstrap-current.fs-uae",
   "bootstrap_reset_base": "0x00f80000",
   "wcs_payload_size": 262144,
@@ -28,5 +29,5 @@
     "bootstrap_runtime_result": "PASS: A1000.1 bootstrap executes from $F80000 in FS-UAE and reaches the green diagnostic gate"
   },
   "strategy_doc": "docs/A1000_BOOT_STRATEGY.md",
-  "notes": "Stock-style A1000 profile. A1000.2 adds a deterministic 880 KiB ADF-geometry disk containing a complete 256 KiB WCS payload and a simple LibreKick-private sector-0 manifest. This does not claim compatibility with Commodore's Kickstart-disk format. A1000.3 will teach the clean-room bootstrap to read this container, populate WCS, lock it, and transfer control."
+  "notes": "Stock-style A1000 profile. A1000.3 implements a 68000 DF0 loader using Paula disk DMA and standard Amiga MFM sector decoding. It validates the LibreKick-private sector-0 manifest, copies sectors 1..512 to the 256 KiB WCS window, switches mapping from a chip-RAM trampoline, and jumps to $FC0008. Runtime qualification is pending; do not mark emulator-qualified until the dedicated FS-UAE gate passes."
 }
