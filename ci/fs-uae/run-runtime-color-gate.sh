@@ -2,6 +2,7 @@
 set -euo pipefail
 
 OUT=${LIBREKICK_RUNTIME_OUT:-build/fs-uae/runtime}
+WAIT_SECONDS=${LIBREKICK_RUNTIME_WAIT_SECONDS:-2}
 
 if [[ -n "${LIBREKICK_RUNTIME_ROM:-}" ]]; then
   rom="$LIBREKICK_RUNTIME_ROM"
@@ -34,6 +35,7 @@ fi
 mkdir -p "$OUT"
 printf '%s\n' "$rom" > "$OUT/rom.txt"
 printf '%s\n' "$config" > "$OUT/config.txt"
+printf '%s\n' "$WAIT_SECONDS" > "$OUT/wait-seconds.txt"
 fs-uae --version > "$OUT/fs-uae-version.txt" 2>&1 || true
 
 pid=""
@@ -74,7 +76,7 @@ if [[ -z "$wid" ]]; then
   exit 1
 fi
 
-sleep 2
+sleep "$WAIT_SECONDS"
 import -window "$wid" "$OUT/diagnostic.png"
 
 python3 - "$OUT/diagnostic.png" "$OUT/result.txt" <<'PY'
