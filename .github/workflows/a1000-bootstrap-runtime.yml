@@ -27,6 +27,7 @@ jobs:
           LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a1000-bootstrap-current.fs-uae
           LIBREKICK_RUNTIME_BUILD_CMD: make check-a1000-loader
           LIBREKICK_RUNTIME_OUT: build/fs-uae/a1000-bootstrap
+          LIBREKICK_RUNTIME_WAIT_SECONDS: 20
         run: |
           chmod +x ci/fs-uae/run-runtime-color-gate.sh
           xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
@@ -43,6 +44,7 @@ jobs:
             build/fs-uae/a1000-bootstrap/fs-uae-version.txt
             build/fs-uae/a1000-bootstrap/rom.txt
             build/fs-uae/a1000-bootstrap/config.txt
+            build/fs-uae/a1000-bootstrap/wait-seconds.txt
             build/a1000/librekick-a1000.3-bootstrap.rom
             build/a1000/librekick-a1000.2-wcs.bin
             build/a1000/librekick-a1000.2-kickdisk.adf
