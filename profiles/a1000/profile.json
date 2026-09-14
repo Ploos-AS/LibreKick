@@ -5,7 +5,7 @@
   "cpu": "68000",
   "status": "buildable",
   "boot_architecture": "bootstrap-rom-plus-256k-wcs",
-  "current_milestone": "a1000.1",
+  "current_milestone": "a1000.2",
   "bootstrap_rom_size": 65536,
   "bootstrap_generator": "tools/make_a1000_0_bootstrap.py",
   "bootstrap_checker": "tools/check_a1000_0_bootstrap.py",
@@ -13,15 +13,20 @@
   "bootstrap_fs_uae_config": "configs/fs-uae/a1000-bootstrap-current.fs-uae",
   "bootstrap_reset_base": "0x00f80000",
   "wcs_payload_size": 262144,
-  "wcs_payload": null,
-  "kickstart_disk_artifact": null,
+  "wcs_load_address": "0x00fc0000",
+  "wcs_entry_pc": "0x00fc0008",
+  "wcs_payload": "build/a1000/librekick-a1000.2-wcs.bin",
+  "kickstart_disk_artifact": "build/a1000/librekick-a1000.2-kickdisk.adf",
+  "kickdisk_format": "librekick-private-bootstrap-container-v2",
   "qualification_evidence": {
     "shared_512k_experiment_run": 34831299390,
-    "job_id": 103935019498,
-    "artifact_id": 10342561675,
-    "artifact_sha256": "17db7acdece0d7ecb4cbd799ecaf60b38c4f159aa20f9e3432211d64a2bbeab6",
-    "result": "FAIL: generic 512 KiB M2.43 ROM is not a valid stock-A1000 qualification path"
+    "shared_512k_result": "FAIL: generic 512 KiB M2.43 ROM is not a valid stock-A1000 qualification path",
+    "bootstrap_runtime_run": 34842644276,
+    "bootstrap_runtime_job": 103970943575,
+    "bootstrap_runtime_artifact": 10346986459,
+    "bootstrap_runtime_artifact_sha256": "a7bdca959c3e81eda751a301710f8abc1e1b4613955a4e5f119b12cc33619dfc",
+    "bootstrap_runtime_result": "PASS: A1000.1 bootstrap executes from $F80000 in FS-UAE and reaches the green diagnostic gate"
   },
   "strategy_doc": "docs/A1000_BOOT_STRATEGY.md",
-  "notes": "Stock A1000 profile. A1000.1 maps the clean-room bootstrap reset vector into the lower 256 KiB bootstrap half at $F80000. Runtime qualification is dedicated and must pass before any emulator-qualified claim. WCS loading is not yet implemented."
+  "notes": "Stock-style A1000 profile. A1000.2 adds a deterministic 880 KiB ADF-geometry disk containing a complete 256 KiB WCS payload and a simple LibreKick-private sector-0 manifest. This does not claim compatibility with Commodore's Kickstart-disk format. A1000.3 will teach the clean-room bootstrap to read this container, populate WCS, lock it, and transfer control."
 }
