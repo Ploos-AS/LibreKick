@@ -1,24 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUT=build/fs-uae/runtime
+OUT=${LIBREKICK_RUNTIME_OUT:-build/fs-uae/runtime}
 
-rom=$(awk '$1 == "ROM" && $2 == ":=" {print $3; exit}' Makefile)
+if [[ -n "${LIBREKICK_RUNTIME_ROM:-}" ]]; then
+  rom="$LIBREKICK_RUNTIME_ROM"
+else
+  rom=$(awk '$1 == "ROM" && $2 == ":=" {print $3; exit}' Makefile)
+fi
 if [[ -z "${rom:-}" ]]; then
-  echo "Could not determine current ROM from Makefile" >&2
+  echo "Could not determine current ROM" >&2
   exit 2
 fi
 
-stem=$(basename "$rom" .rom)
-milestone=${stem#librekick-}
-config="configs/fs-uae/a500-${milestone}.fs-uae"
+if [[ -n "${LIBREKICK_RUNTIME_CONFIG:-}" ]]; then
+  config="$LIBREKICK_RUNTIME_CONFIG"
+else
+  stem=$(basename "$rom" .rom)
+  milestone=${stem#librekick-}
+  config="configs/fs-uae/a500-${milestone}.fs-uae"
+fi
 
 if [[ ! -f "$config" ]]; then
-  echo "Missing FS-UAE config for current milestone: $config" >&2
+  echo "Missing FS-UAE config: $config" >&2
   exit 2
 fi
 
-make clean check
+if [[ -n "${LIBREKICK_RUNTIME_BUILD_CMD:-}" ]]; then
+  bash -lc "$LIBREKICK_RUNTIME_BUILD_CMD"
+else
+  make clean check
+fi
 mkdir -p "$OUT"
 printf '%s\n' "$rom" > "$OUT/rom.txt"
 printf '%s\n' "$config" > "$OUT/config.txt"
@@ -84,9 +96,6 @@ green = sum(1 for r, g, b in pixels if g >= 180 and r <= 80 and b <= 80)
 blue = sum(1 for r, g, b in pixels if b >= 160 and r <= 100 and g <= 120)
 red = sum(1 for r, g, b in pixels if r >= 160 and g <= 120 and b <= 120)
 
-# Quantize only for diagnostics. A stable LibreKick screen is nearly a single
-# framebuffer color, so this identifies staged failure colors even when they
-# are yellow/magenta/cyan rather than the historic blue/red values.
 def q(rgb):
     return tuple((v // 16) * 16 for v in rgb)
 quant = Counter(q(px) for px in pixels)
