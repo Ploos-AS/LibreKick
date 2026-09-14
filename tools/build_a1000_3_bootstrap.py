@@ -26,15 +26,34 @@ def run(cmd: list[str]) -> None:
 
 
 def runtime_source(out_dir: Path) -> Path:
-    """Prepare the bootstrap source with emulator-safe /RDY handling.
+    """Prepare the bootstrap source with emulator-safe A1000 handling.
 
     Some FS-UAE A1000 bootstrap configurations never assert CIAA /RDY with
     the generated DF0 image. For the automated emulator runtime gate, /RDY
-    is therefore bypassed completely. Seek, disk DMA timeout, sector MFM
-    decoding and manifest validation remain the authoritative disk gates.
-    Real-hardware /RDY timing remains a separate qualification requirement.
+    is therefore bypassed completely. The bootstrap reset stack is also
+    placed at the top of the first 256 KiB of chip RAM, which is valid on a
+    base A1000. The WCS payload manifest keeps its separate historical reset
+    SP value. Seek, disk DMA timeout, sector MFM decoding and manifest
+    validation remain the authoritative disk gates. Real-hardware /RDY timing
+    remains a separate qualification requirement.
     """
     text = SOURCE.read_text()
+
+    stack_old = "        .equ    RESET_SP,       0x0007fffc\n"
+    stack_new = "        .equ    RESET_SP,       0x0003fffc\n"
+    if stack_old not in text:
+        raise SystemExit("A1000 bootstrap RESET_SP changed; update build overlay")
+    text = text.replace(stack_old, stack_new, 1)
+
+    # The payload manifest has its own reset-stack contract. Keep validating
+    # the existing payload value even though the bootstrap ROM itself now
+    # uses a 256K-safe stack.
+    manifest_old = "        cmpi.l  #RESET_SP,36(a0)\n"
+    manifest_new = "        cmpi.l  #0x0007fffc,36(a0)       /* payload reset SP */\n"
+    if manifest_old not in text:
+        raise SystemExit("A1000 manifest RESET_SP check changed; update build overlay")
+    text = text.replace(manifest_old, manifest_new, 1)
+
     old = """/* D0=0 on ready, -1 on timeout. */
 wait_ready:
         move.l  #0x00200000,d0
