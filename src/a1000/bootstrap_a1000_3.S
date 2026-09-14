@@ -82,10 +82,14 @@ reset:
         move.w  #0x2700,sr
         move.w  #COLOR_BOOT,COLOR00
 
-        /* CIAB port B drives motor/select/side/direction/step. */
+        /* CIAB port B drives motor/select/side/direction/step.  The Amiga
+         * floppy motor line is latched by the drive on a select edge, so
+         * assert /MTR while all drives are deselected first, then select
+         * DF0.  Writing the final 0x77 state in one operation can leave the
+         * emulated drive motor latch unchanged and /RDY never asserts. */
         move.b  #0xff,CIAB_DDRB
-        /* DF0 selected, motor on, side 0, direction outward, STEP high. */
-        move.b  #0x77,CIAB_PRB
+        move.b  #0x7f,CIAB_PRB          /* all drives deselected, motor on */
+        move.b  #0x77,CIAB_PRB          /* select DF0, side 0, STEP high */
 
         move.w  #COLOR_WAIT_READY,COLOR00
         bsr     wait_ready
