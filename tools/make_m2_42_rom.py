@@ -9,11 +9,11 @@ import make_m2_17_rom as m
 MARKER=b'LIBREKICK-M2.42\0EXEC-CONTEXT-INTEGRATED\0'
 IDENT=b'exec.library\0LibreKick M2.42 integrated private context transfer slice 40.42\0'
 PROBE_OFF=0x5600
-PROBE_END=0x5800
-HANDOFF_OFF=0x5800
-HANDOFF_END=0x5900
-RESUME_OFF=0x5900
-RESUME_END=0x5A00
+PROBE_END=0x5900
+HANDOFF_OFF=0x5900
+HANDOFF_END=0x5A00
+RESUME_OFF=0x5A00
+RESUME_END=0x5B00
 
 THIS_TASK=0x00003514
 TC_SPREG=0x36
@@ -52,63 +52,42 @@ def store_a(r,addr): return opw(0x23C8+r)+struct.pack('>I',addr)
 
 
 def handoff_code():
-    """Save preserved registers + entry SR on the task stack, then transfer PC.
-
-    Entry is by JSR on the caller stack. The entry SR is captured before any
-    flag-changing MOVE sequence. A7 is then redirected to ThisTask->tc_SPReg.
-    The captured SR word and D2-D7/A2-A6 are pushed on the task stack, those
-    registers/CCR are deliberately perturbed, a private resume PC is pushed,
-    and RTS transfers execution through that task-stack PC.
-    """
     q=bytearray()
-    q+=bytes.fromhex('40F9')+struct.pack('>I',ORIGINAL_SR_CELL)    # entry SR -> word cell
-    q+=bytes.fromhex('2279')+struct.pack('>I',THIS_TASK)           # a1=ThisTask
-    q+=bytes.fromhex('2029')+struct.pack('>H',TC_SPREG)            # d0=tc_SPReg
-    q+=bytes.fromhex('23CF')+struct.pack('>I',ORIGINAL_SP_CELL)    # caller a7
-    q+=bytes.fromhex('2217')                                       # d1=caller return PC
+    q+=bytes.fromhex('40F9')+struct.pack('>I',ORIGINAL_SR_CELL)
+    q+=bytes.fromhex('2279')+struct.pack('>I',THIS_TASK)
+    q+=bytes.fromhex('2029')+struct.pack('>H',TC_SPREG)
+    q+=bytes.fromhex('23CF')+struct.pack('>I',ORIGINAL_SP_CELL)
+    q+=bytes.fromhex('2217')
     q+=bytes.fromhex('23C1')+struct.pack('>I',CALLER_PC_CELL)
-    q+=bytes.fromhex('2E40')                                       # task stack
-
-    q+=bytes.fromhex('3F39')+struct.pack('>I',ORIGINAL_SR_CELL)    # saved entry SR word
+    q+=bytes.fromhex('2E40')
+    q+=bytes.fromhex('3F39')+struct.pack('>I',ORIGINAL_SR_CELL)
     for r in D_REGS: q+=push_d(r)
     for r in A_REGS: q+=push_a(r)
-
     for r in D_REGS: q+=imm_d(r,D_CLOBBERS[r])
     for r in A_REGS: q+=imm_a(r,A_CLOBBERS[r])
-    q+=bytes.fromhex('0A3C001F')                                   # perturb CCR only
-
+    q+=bytes.fromhex('0A3C001F')
     q+=bytes.fromhex('2F3C')+struct.pack('>I',m.ROM_BASE+RESUME_OFF)
     q+=bytes.fromhex('23CF')+struct.pack('>I',TRANSFER_SP_CELL)
-    q+=bytes.fromhex('4E75')                                       # resume PC popped from task stack
+    q+=bytes.fromhex('4E75')
     return bytes(q)
 
 
 def resume_code():
-    """Restore register subset and saved SR, then return to original caller.
-
-    RTS has already consumed the synthetic resume PC, so A7 points at the low
-    end of the saved register frame (A6). Stores used to observe restored
-    registers may change CCR, therefore the captured SR is restored only after
-    all observation stores. After MOVE (A7)+,SR only MOVEA and RTS execute.
-    """
     q=bytearray()
     q+=bytes.fromhex('23CF')+struct.pack('>I',RESUME_SP_CELL)
     q+=m.ml(ARRIVED_MAGIC,ARRIVED_CELL)
-
     for r in reversed(A_REGS):
         q+=pop_a(r); q+=store_a(r,OBS_CELLS[('A',r)])
     for r in reversed(D_REGS):
         q+=pop_d(r); q+=store_d(r,OBS_CELLS[('D',r)])
-
-    q+=bytes.fromhex('46DF')                                       # restore saved SR last
-    q+=bytes.fromhex('2E79')+struct.pack('>I',ORIGINAL_SP_CELL)    # MOVEA: no CCR change
-    q+=bytes.fromhex('4E75')                                       # original caller return PC
+    q+=bytes.fromhex('46DF')
+    q+=bytes.fromhex('2E79')+struct.pack('>I',ORIGINAL_SP_CELL)
+    q+=bytes.fromhex('4E75')
     return bytes(q)
 
 
 def build():
     image=bytearray(p.build())
-
     prev=image[p.PROBE_OFF:p.PROBE_END]
     sig=bytes.fromhex('33FC00F000DFF1806000')
     gp=prev.rfind(sig)
@@ -129,9 +108,8 @@ def build():
 
     c=bytearray(); fails=[]
     start_sp=0x0000D7F0
-    # SR word + 11 long registers = 46 bytes. Resume PC adds another 4 bytes.
-    frame_low=start_sp-2-4*len(REG_ORDER)                          # $D7C2
-    transfer_sp=frame_low-4                                       # $D7BE
+    frame_low=start_sp-2-4*len(REG_ORDER)
+    transfer_sp=frame_low-4
 
     c+=m.ml(0x0000D000,a.TASK_B+TC_SPLOWER)
     c+=m.ml(0x0000D800,a.TASK_B+TC_SPUPPER)
@@ -148,9 +126,6 @@ def build():
     jsr_pos=len(c)
     c+=bytes.fromhex('4EB9')+struct.pack('>I',m.ROM_BASE+HANDOFF_OFF)
     expected_return=m.ROM_BASE+PROBE_OFF+jsr_pos+6
-
-    # Capture returned SR immediately. MOVE from SR does not intentionally alter
-    # the saved condition-code state; later comparisons may.
     c+=bytes.fromhex('40F9')+struct.pack('>I',RETURNED_SR_CELL)
 
     fails.append(m.cmpabs(c,transfer_sp,TRANSFER_SP_CELL))
@@ -160,18 +135,12 @@ def build():
     fails.append(m.cmpabs(c,expected_return,CALLER_PC_CELL))
     fails.append(m.cmpabs(c,a.TASK_B,THIS_TASK))
     fails.append(m.cmpabs(c,start_sp,a.TASK_B+TC_SPREG))
-
     for r in D_REGS: fails.append(m.cmpabs(c,D_VALUES[r],OBS_CELLS[('D',r)]))
     for r in A_REGS: fails.append(m.cmpabs(c,A_VALUES[r],OBS_CELLS[('A',r)]))
-
-    # Physical task-stack frame endpoints remain observable after the pops.
     fails.append(m.cmpabs(c,A_VALUES[6],frame_low))
     fails.append(m.cmpabs(c,D_VALUES[2],start_sp-6))
-
-    # Compare captured entry SR word to the SR word observed immediately after
-    # the complete resume/return path.
-    c+=bytes.fromhex('3039')+struct.pack('>I',ORIGINAL_SR_CELL)    # move.w entrySR,d0
-    c+=bytes.fromhex('B079')+struct.pack('>I',RETURNED_SR_CELL)    # cmp.w returnedSR,d0
+    c+=bytes.fromhex('3039')+struct.pack('>I',ORIGINAL_SR_CELL)
+    c+=bytes.fromhex('B079')+struct.pack('>I',RETURNED_SR_CELL)
     fails.append(m.branch(c,0x6600))
 
     c+=m.mw(0x00f0,m.COLOR00); ok=m.branch(c,0x6000)
