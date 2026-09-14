@@ -1,11 +1,12 @@
 PYTHON ?= python3
 BUILD_DIR := build
 ROM := $(BUILD_DIR)/librekick-m2_43.rom
+A1000_BOOTSTRAP_ROM := $(BUILD_DIR)/a1000/librekick-a1000.0-bootstrap.rom
 A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_43-a500.rom
 A500PLUS_PROFILE_ROM := $(BUILD_DIR)/a500plus/librekick-m2_43-a500plus.rom
 A600_PROFILE_ROM := $(BUILD_DIR)/a600/librekick-m2_43-a600.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 a1000-bootstrap check-a1000-bootstrap profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
 
 all: $(ROM)
 
@@ -15,6 +16,15 @@ $(ROM): tools/make_m2_43_rom.py
 
 check: $(ROM)
 	$(PYTHON) tools/check_m2_43.py $(ROM)
+
+# Amiga 1000 has a separate bootstrap/WCS architecture. Keep this artifact
+# independent of the ordinary 512 KiB retained Kickstart-style profile builds.
+a1000-bootstrap:
+	mkdir -p $(BUILD_DIR)/a1000
+	$(PYTHON) tools/make_a1000_0_bootstrap.py $(A1000_BOOTSTRAP_ROM)
+
+check-a1000-bootstrap: a1000-bootstrap
+	$(PYTHON) tools/check_a1000_0_bootstrap.py $(A1000_BOOTSTRAP_ROM)
 
 qualify-m2_43: check
 	fs-uae configs/fs-uae/a500-m2_43.fs-uae
