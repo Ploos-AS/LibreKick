@@ -3,12 +3,21 @@
   "model": "Amiga 1000",
   "family": "OCS",
   "cpu": "68000",
-  "rom_size": 524288,
-  "status": "buildable",
-  "current_milestone": "m2_43",
-  "generator": "tools/make_m2_43_rom.py",
-  "checker": "tools/check_m2_43.py",
-  "fs_uae_config": "configs/fs-uae/a1000-current.fs-uae",
-  "artifact": "build/a1000/librekick-m2_43-a1000.rom",
-  "notes": "Retained Amiga 1000 OCS profile. Uses the shared M2.43 code path. This is an emulator profile for the current 512 KiB LibreKick ROM mapping and is not yet a claim of original A1000 WCS/bootstrap hardware compatibility. Promote to emulator-qualified only after its dedicated profile-matrix runtime job passes."
+  "status": "planned",
+  "boot_architecture": "bootstrap-rom-plus-256k-wcs",
+  "bootstrap_rom_size": 65536,
+  "wcs_payload_size": 262144,
+  "artifact_plan": [
+    "build/a1000/librekick-a1000-bootstrap.rom",
+    "build/a1000/librekick-a1000-kickdisk.adf"
+  ],
+  "qualification_evidence": {
+    "shared_512k_experiment_run": 34831299390,
+    "job_id": 103935019498,
+    "artifact_id": 10342561675,
+    "artifact_sha256": "17db7acdece0d7ecb4cbd799ecaf60b38c4f159aa20f9e3432211d64a2bbeab6",
+    "result": "FAIL: generic 512 KiB M2.43 ROM is not a valid stock-A1000 qualification path"
+  },
+  "strategy_doc": "docs/A1000_BOOT_STRATEGY.md",
+  "notes": "Stock A1000 profile. Do not substitute the shared 512 KiB ROM path. Implement a clean-room bootstrap ROM plus 256 KiB WCS Kickstart-disk payload before marking buildable. A ROM-adapter derivative must use a separate profile identifier."
 }
