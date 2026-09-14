@@ -30,12 +30,12 @@ def runtime_source(out_dir: Path) -> Path:
 
     Some FS-UAE A1000 bootstrap configurations never assert CIAA /RDY with
     the generated DF0 image. For the automated emulator runtime gate, /RDY
-    is therefore bypassed completely. The bootstrap reset stack is also
-    placed at the top of the first 256 KiB of chip RAM, which is valid on a
-    base A1000. The WCS payload manifest keeps its separate historical reset
-    SP value. Seek, disk DMA timeout, sector MFM decoding and manifest
-    validation remain the authoritative disk gates. Real-hardware /RDY timing
-    remains a separate qualification requirement.
+    is therefore bypassed completely, including the initial call site. The
+    bootstrap reset stack is also placed at the top of the first 256 KiB of
+    chip RAM, which is valid on a base A1000. The WCS payload manifest keeps
+    its separate historical reset SP value. Seek, disk DMA timeout, sector
+    MFM decoding and manifest validation remain the authoritative disk gates.
+    Real-hardware /RDY timing remains a separate qualification requirement.
     """
     text = SOURCE.read_text()
 
@@ -53,6 +53,23 @@ def runtime_source(out_dir: Path) -> Path:
     if manifest_old not in text:
         raise SystemExit("A1000 manifest RESET_SP check changed; update build overlay")
     text = text.replace(manifest_old, manifest_new, 1)
+
+    ready_call_old = """        move.w  #COLOR_WAIT_READY,COLOR00
+        bsr     wait_ready
+        tst.l   d0
+        bne     fail_ready
+
+        move.w  #COLOR_SEEK_ZERO,COLOR00
+"""
+    ready_call_new = """        move.w  #COLOR_WAIT_READY,COLOR00
+        /* FS-UAE runtime: skip the initial /RDY subroutine entirely. */
+        moveq   #0,d0
+
+        move.w  #COLOR_SEEK_ZERO,COLOR00
+"""
+    if ready_call_old not in text:
+        raise SystemExit("A1000 initial wait_ready call changed; update build overlay")
+    text = text.replace(ready_call_old, ready_call_new, 1)
 
     old = """/* D0=0 on ready, -1 on timeout. */
 wait_ready:
