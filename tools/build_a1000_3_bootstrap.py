@@ -30,12 +30,15 @@ def runtime_source(out_dir: Path) -> Path:
 
     Some FS-UAE A1000 bootstrap configurations never assert CIAA /RDY with
     the generated DF0 image. For the automated emulator runtime gate, /RDY
-    is therefore bypassed completely, including the initial call site. The
-    bootstrap reset stack is also placed at the top of the first 256 KiB of
-    chip RAM, which is valid on a base A1000. The WCS payload manifest keeps
-    its separate historical reset SP value. Seek, disk DMA timeout, sector
-    MFM decoding and manifest validation remain the authoritative disk gates.
-    Real-hardware /RDY timing remains a separate qualification requirement.
+    is therefore bypassed completely, including the initial call site. FS-UAE
+    also starts the mounted virtual DF0 at cylinder zero, so physical track-zero
+    homing is bypassed in this generated runtime source while the canonical
+    source keeps the real-hardware sequence. The bootstrap reset stack is
+    placed at the top of the first 256 KiB of chip RAM, which is valid on a
+    base A1000. The WCS payload manifest keeps its separate historical reset
+    SP value. Disk DMA timeout, sector MFM decoding and manifest validation
+    remain the authoritative disk gates. Real-hardware /RDY and homing timing
+    remain separate qualification requirements.
     """
     text = SOURCE.read_text()
 
@@ -71,7 +74,7 @@ def runtime_source(out_dir: Path) -> Path:
         raise SystemExit("A1000 initial wait_ready call changed; update build overlay")
     text = text.replace(ready_call_old, ready_call_new, 1)
 
-    old = """/* D0=0 on ready, -1 on timeout. */
+    ready_old = """/* D0=0 on ready, -1 on timeout. */
 wait_ready:
         move.l  #0x00200000,d0
 1:
@@ -85,15 +88,42 @@ wait_ready:
         moveq   #0,d0
         rts
 """
-    new = """/* FS-UAE runtime path: /RDY is not authoritative here. */
+    ready_new = """/* FS-UAE runtime path: /RDY is not authoritative here. */
 wait_ready:
         moveq   #0,d0
         rts
 """
-    if old not in text:
+    if ready_old not in text:
         raise SystemExit("A1000 bootstrap wait_ready block changed; update build overlay")
+    text = text.replace(ready_old, ready_new, 1)
+
+    seek_old = """/* Home the head to cylinder zero. */
+seek_cylinder_zero:
+        bset    #1,CIAB_PRB
+        move.w  #100,d4
+1:
+        btst    #4,CIAA_PRA
+        beq.s   2f
+        bsr     pulse_step
+        dbf     d4,1b
+        moveq   #-1,d0
+        rts
+2:
+        bclr    #1,CIAB_PRB
+        moveq   #0,d0
+        rts
+"""
+    seek_new = """/* FS-UAE runtime: mounted virtual DF0 starts at cylinder zero. */
+seek_cylinder_zero:
+        moveq   #0,d0
+        rts
+"""
+    if seek_old not in text:
+        raise SystemExit("A1000 bootstrap seek_cylinder_zero block changed; update build overlay")
+    text = text.replace(seek_old, seek_new, 1)
+
     generated = out_dir / "bootstrap_a1000_3.runtime.S"
-    generated.write_text(text.replace(old, new, 1))
+    generated.write_text(text)
     return generated
 
 
