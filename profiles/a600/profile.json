@@ -1,0 +1,14 @@
+{
+  "id": "a600",
+  "model": "Amiga 600",
+  "family": "ECS",
+  "cpu": "68000",
+  "rom_size": 524288,
+  "status": "buildable",
+  "current_milestone": "m2_43",
+  "generator": "tools/make_m2_43_rom.py",
+  "checker": "tools/check_m2_43.py",
+  "fs_uae_config": "configs/fs-uae/a600-current.fs-uae",
+  "artifact": "build/a600/librekick-m2_43-a600.rom",
+  "notes": "Retained Amiga 600 ECS profile. Uses the shared M2.43 code path; promote to emulator-qualified only after its dedicated profile-matrix FS-UAE runtime job passes."
+}
