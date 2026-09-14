@@ -53,7 +53,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-fs-uae "$config" > "$OUT/fs-uae.log" 2>&1 &
+# GitHub-hosted runners do not provide an ALSA/OpenAL playback device.  Audio is
+# irrelevant to the color-based runtime gate, so disable it explicitly.  This
+# avoids FS-UAE stalling during audio backend initialization before SDL creates
+# the emulator window.
+fs-uae "$config" --uae-sound-output=none > "$OUT/fs-uae.log" 2>&1 &
 pid=$!
 
 wid=""
