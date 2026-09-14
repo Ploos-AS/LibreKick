@@ -5,12 +5,14 @@
   "cpu": "68000",
   "status": "planned",
   "boot_architecture": "bootstrap-rom-plus-256k-wcs",
+  "current_milestone": "a1000.0",
   "bootstrap_rom_size": 65536,
+  "bootstrap_generator": "tools/make_a1000_0_bootstrap.py",
+  "bootstrap_checker": "tools/check_a1000_0_bootstrap.py",
+  "bootstrap_artifact": "build/a1000/librekick-a1000.0-bootstrap.rom",
   "wcs_payload_size": 262144,
-  "artifact_plan": [
-    "build/a1000/librekick-a1000-bootstrap.rom",
-    "build/a1000/librekick-a1000-kickdisk.adf"
-  ],
+  "wcs_payload": null,
+  "kickstart_disk_artifact": null,
   "qualification_evidence": {
     "shared_512k_experiment_run": 34831299390,
     "job_id": 103935019498,
@@ -19,5 +21,5 @@
     "result": "FAIL: generic 512 KiB M2.43 ROM is not a valid stock-A1000 qualification path"
   },
   "strategy_doc": "docs/A1000_BOOT_STRATEGY.md",
-  "notes": "Stock A1000 profile. Do not substitute the shared 512 KiB ROM path. Implement a clean-room bootstrap ROM plus 256 KiB WCS Kickstart-disk payload before marking buildable. A ROM-adapter derivative must use a separate profile identifier."
+  "notes": "Stock A1000 profile. A1000.0 is a clean-room 64 KiB bootstrap-ROM skeleton only; it does not yet load WCS and is not emulator- or hardware-qualified. The reset mapping remains provisional until A1000.1 runtime qualification."
 }
