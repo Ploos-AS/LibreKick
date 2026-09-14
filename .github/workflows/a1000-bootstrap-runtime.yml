@@ -1,0 +1,47 @@
+name: A1000 bootstrap runtime qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a1000-bootstrap-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FS-UAE runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil
+
+      - name: Run A1000.1 bootstrap in FS-UAE
+        env:
+          LIBREKICK_RUNTIME_ROM: build/a1000/librekick-a1000.1-bootstrap.rom
+          LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a1000-bootstrap-current.fs-uae
+          LIBREKICK_RUNTIME_BUILD_CMD: make check-a1000-bootstrap
+          LIBREKICK_RUNTIME_OUT: build/fs-uae/a1000-bootstrap
+        run: |
+          chmod +x ci/fs-uae/run-runtime-color-gate.sh
+          xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
+
+      - name: Upload A1000 bootstrap runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: librekick-a1000-bootstrap-runtime-qualification
+          path: |
+            build/fs-uae/a1000-bootstrap/result.txt
+            build/fs-uae/a1000-bootstrap/diagnostic.png
+            build/fs-uae/a1000-bootstrap/fs-uae.log
+            build/fs-uae/a1000-bootstrap/fs-uae-version.txt
+            build/fs-uae/a1000-bootstrap/rom.txt
+            build/fs-uae/a1000-bootstrap/config.txt
+            build/a1000/librekick-a1000.1-bootstrap.rom
+          if-no-files-found: warn
