@@ -25,6 +25,50 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
+def runtime_source(out_dir: Path) -> Path:
+    """Prepare the bootstrap source with emulator-safe advisory /RDY handling.
+
+    Some FS-UAE A1000 bootstrap configurations do not assert CIAA /RDY even
+    with a mounted DF0 image.  /RDY is therefore treated as a spin-up hint;
+    seek, DMA timeout and MFM validation remain the authoritative gates.
+    Real-hardware /RDY timing stays a separate qualification requirement.
+    """
+    text = SOURCE.read_text()
+    old = """/* D0=0 on ready, -1 on timeout. */
+wait_ready:
+        move.l  #0x00200000,d0
+1:
+        btst    #5,CIAA_PRA
+        beq.s   2f
+        subq.l  #1,d0
+        bne.s   1b
+        moveq   #-1,d0
+        rts
+2:
+        moveq   #0,d0
+        rts
+"""
+    new = """/* /RDY is advisory here: wait for it when available, otherwise
+ * continue after a bounded spin-up interval.  Seek, disk DMA timeout and
+ * MFM validation remain authoritative. */
+wait_ready:
+        move.l  #0x00200000,d0
+1:
+        btst    #5,CIAA_PRA
+        beq.s   2f
+        subq.l  #1,d0
+        bne.s   1b
+2:
+        moveq   #0,d0
+        rts
+"""
+    if old not in text:
+        raise SystemExit("A1000 bootstrap wait_ready block changed; update build overlay")
+    generated = out_dir / "bootstrap_a1000_3.runtime.S"
+    generated.write_text(text.replace(old, new, 1))
+    return generated
+
+
 def main() -> int:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "build/a1000/librekick-a1000.3-bootstrap.rom")
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -34,6 +78,7 @@ def main() -> int:
     assembler = need("m68k-linux-gnu-as")
     linker = need("m68k-linux-gnu-ld")
     objcopy = need("m68k-linux-gnu-objcopy")
+    source = runtime_source(out.parent)
 
     # The source deliberately uses traditional Motorola register spelling
     # (d0/a0/sp without '%' prefixes). GNU m68k as supports this explicitly.
@@ -42,7 +87,7 @@ def main() -> int:
         "-m68000",
         "--register-prefix-optional",
         "-o", str(obj),
-        str(SOURCE),
+        str(source),
     ])
     run([
         linker,
