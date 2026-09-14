@@ -26,12 +26,13 @@ def run(cmd: list[str]) -> None:
 
 
 def runtime_source(out_dir: Path) -> Path:
-    """Prepare the bootstrap source with emulator-safe advisory /RDY handling.
+    """Prepare the bootstrap source with emulator-safe /RDY handling.
 
-    Some FS-UAE A1000 bootstrap configurations do not assert CIAA /RDY even
-    with a mounted DF0 image. /RDY is therefore treated as a short spin-up
-    hint only; seek, DMA timeout and MFM validation remain authoritative.
-    Real-hardware /RDY timing stays a separate qualification requirement.
+    Some FS-UAE A1000 bootstrap configurations never assert CIAA /RDY with
+    the generated DF0 image. For the automated emulator runtime gate, /RDY
+    is therefore bypassed completely. Seek, disk DMA timeout, sector MFM
+    decoding and manifest validation remain the authoritative disk gates.
+    Real-hardware /RDY timing remains a separate qualification requirement.
     """
     text = SOURCE.read_text()
     old = """/* D0=0 on ready, -1 on timeout. */
@@ -48,17 +49,8 @@ wait_ready:
         moveq   #0,d0
         rts
 """
-    new = """/* /RDY is advisory here: sample it for a short bounded interval,
- * then continue. Seek, disk DMA timeout and MFM validation remain
- * authoritative, including on emulators that never assert /RDY. */
+    new = """/* FS-UAE runtime path: /RDY is not authoritative here. */
 wait_ready:
-        move.w  #0x1000,d0
-1:
-        btst    #5,CIAA_PRA
-        beq.s   2f
-        subq.w  #1,d0
-        bne.s   1b
-2:
         moveq   #0,d0
         rts
 """
