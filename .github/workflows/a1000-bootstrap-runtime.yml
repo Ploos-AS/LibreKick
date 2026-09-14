@@ -12,20 +12,20 @@ permissions:
 jobs:
   a1000-bootstrap-runtime:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install FS-UAE runtime tools
+      - name: Install A1000 runtime/build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil
+          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil binutils-m68k-linux-gnu
 
-      - name: Run A1000.1 bootstrap in FS-UAE
+      - name: Run A1000.3 DF0 to WCS loader in FS-UAE
         env:
-          LIBREKICK_RUNTIME_ROM: build/a1000/librekick-a1000.1-bootstrap.rom
+          LIBREKICK_RUNTIME_ROM: build/a1000/librekick-a1000.3-bootstrap.rom
           LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a1000-bootstrap-current.fs-uae
-          LIBREKICK_RUNTIME_BUILD_CMD: make check-a1000-bootstrap
+          LIBREKICK_RUNTIME_BUILD_CMD: make check-a1000-loader
           LIBREKICK_RUNTIME_OUT: build/fs-uae/a1000-bootstrap
         run: |
           chmod +x ci/fs-uae/run-runtime-color-gate.sh
@@ -43,5 +43,7 @@ jobs:
             build/fs-uae/a1000-bootstrap/fs-uae-version.txt
             build/fs-uae/a1000-bootstrap/rom.txt
             build/fs-uae/a1000-bootstrap/config.txt
-            build/a1000/librekick-a1000.1-bootstrap.rom
+            build/a1000/librekick-a1000.3-bootstrap.rom
+            build/a1000/librekick-a1000.2-wcs.bin
+            build/a1000/librekick-a1000.2-kickdisk.adf
           if-no-files-found: warn
