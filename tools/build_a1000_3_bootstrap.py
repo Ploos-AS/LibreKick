@@ -79,13 +79,15 @@ def runtime_source(out_dir: Path) -> Path:
         tst.l   d0
         bne     fail_seek
 
-        clr.l   CURRENT_TRACK
+        clr.b   STATE_CYL
+        move.b  #0xff,STATE_TRACK
 """
     seek_call_new = """        move.w  #COLOR_SEEK_ZERO,COLOR00
         /* FS-UAE runtime: virtual DF0 is already positioned at cylinder zero. */
         moveq   #0,d0
 
-        clr.l   CURRENT_TRACK
+        clr.b   STATE_CYL
+        move.b  #0xff,STATE_TRACK
 """
     if seek_call_old not in text:
         raise SystemExit("A1000 initial seek_cylinder_zero call changed; update build overlay")
