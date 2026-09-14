@@ -2,8 +2,9 @@ PYTHON ?= python3
 BUILD_DIR := build
 ROM := $(BUILD_DIR)/librekick-m2_43.rom
 A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_43-a500.rom
+A500PLUS_PROFILE_ROM := $(BUILD_DIR)/a500plus/librekick-m2_43-a500plus.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 profile-a500 qualify-profile-a500
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus
 
 all: $(ROM)
 
@@ -29,6 +30,12 @@ profile-a500:
 
 qualify-profile-a500: profile-a500
 	fs-uae configs/fs-uae/a500-current.fs-uae
+
+profile-a500plus:
+	$(PYTHON) tools/build_profile.py a500plus
+
+qualify-profile-a500plus: profile-a500plus
+	fs-uae configs/fs-uae/a500plus-current.fs-uae
 
 # Generic historical M2.x build/qualification targets.
 m2_%:
