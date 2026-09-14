@@ -11,7 +11,12 @@ restore=data[0x5F00:0x6000]
 target=data[0x6000:0x6100]
 for op in ('40F900004D48','23CF00004D40','2017','23C000004D44','23FC0000C10000003514','23FC0000C10000004C10','13FC00020000C10F','2E790000C136','4E75'):
     assert bytes.fromhex(op) in activate, f'missing activation opcode {op}'
-for op in ('205F','225F','245F','265F','285F','2C5F','2E1F','2C1F','2A1F','281F','261F','241F','46DF','4E75'):
+# restore_code() pops A6..A2, then D7..D2.  The A-register opcodes are
+# MOVEA.L (A7)+,An: 2C5F,2A5F,285F,265F,245F.  Earlier checker
+# expectations incorrectly included A0/A1 (205F/225F), which are not part of
+# the preserved-register set and are intentionally not restored by M2.43.
+for op in ('2C5F','2A5F','285F','265F','245F',
+           '2E1F','2C1F','2A1F','281F','261F','241F','46DF','4E75'):
     assert bytes.fromhex(op) in restore, f'missing restore opcode {op}'
 for op in ('40F900004D4A','23CF00004D4C','23FC4C4B343300004D50','46F900004D48','2E7900004D40','4E75'):
     assert bytes.fromhex(op) in target, f'missing target opcode {op}'
