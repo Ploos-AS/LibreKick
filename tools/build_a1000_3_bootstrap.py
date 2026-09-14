@@ -35,7 +35,15 @@ def main() -> int:
     linker = need("m68k-linux-gnu-ld")
     objcopy = need("m68k-linux-gnu-objcopy")
 
-    run([assembler, "-m68000", "-o", str(obj), str(SOURCE)])
+    # The source deliberately uses traditional Motorola register spelling
+    # (d0/a0/sp without '%' prefixes). GNU m68k as supports this explicitly.
+    run([
+        assembler,
+        "-m68000",
+        "--register-prefix-optional",
+        "-o", str(obj),
+        str(SOURCE),
+    ])
     run([
         linker,
         "--build-id=none",
