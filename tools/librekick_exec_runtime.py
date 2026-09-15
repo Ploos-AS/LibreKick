@@ -9,6 +9,9 @@ from __future__ import annotations
 import struct
 
 SYSBASE_ADDR = 4
+# Current internal ExecBase layout used by the M2 runtime. Keep the offset here
+# so WCS and ordinary ROM profiles consume the same task lookup primitive.
+THIS_TASK_OFF = 0x114
 
 
 def get_sysbase_code() -> bytes:
@@ -17,6 +20,17 @@ def get_sysbase_code() -> bytes:
     68000 encoding: MOVE.L $00000004,D0 ; RTS
     """
     return bytes.fromhex("2039000000044e75")
+
+
+def get_current_task_code() -> bytes:
+    """Return ExecBase->ThisTask in D0 without requiring A6.
+
+    This is a private shared runtime primitive, not yet a public FindTask()
+    vector. It deliberately derives ExecBase from address 4 so the same bytes
+    work in retained ROM and A1000 WCS profiles.
+    """
+    # MOVEA.L $00000004,A0 ; MOVE.L $0114(A0),D0 ; RTS
+    return bytes.fromhex("207900000004202801144e75")
 
 
 def jsr_absolute(addr: int) -> bytes:
