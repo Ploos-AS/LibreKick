@@ -16,14 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and check A1000.2 WCS payload and kickdisk
+      - name: Build and check A1000.4 WCS payload and kickdisk
         run: make check-a1000-kickdisk
 
-      - name: Upload A1000.2 artifacts
+      - name: Upload A1000.4 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: librekick-a1000.2-kickdisk-static
+          name: librekick-a1000.4-kickdisk-static
           path: |
-            build/a1000/librekick-a1000.2-wcs.bin
-            build/a1000/librekick-a1000.2-kickdisk.adf
+            build/a1000/librekick-a1000.4-wcs.bin
+            build/a1000/librekick-a1000.4-kickdisk.adf
           if-no-files-found: error
