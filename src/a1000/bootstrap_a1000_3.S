@@ -23,6 +23,7 @@
         .equ    CIAB_PRB,       0x00bfd100
         .equ    CIAB_DDRB,      0x00bfd300
         .equ    CIAA_PRA,       0x00bfe001
+        .equ    CIAA_DDRA,      0x00bfe201
 
         .equ    DSKPTH,         0x00dff020
         .equ    DSKLEN,         0x00dff024
@@ -81,6 +82,13 @@ _start:
 reset:
         move.w  #0x2700,sr
         move.w  #COLOR_BOOT,COLOR00
+
+        /* Reset starts with the bootstrap ROM overlaid at address zero so
+         * the 68000 can fetch SSP/PC.  Before touching low Chip RAM for the
+         * state block, DMA buffer, stack or trampoline, make CIA-A PA0 an
+         * output and clear OVL so $000000 maps back to Chip RAM. */
+        move.b  #0x03,CIAA_DDRA
+        bclr    #0,CIAA_PRA
 
         /* CIAB port B drives motor/select/side/direction/step.  The Amiga
          * floppy motor line is latched by the drive on a select edge, so
