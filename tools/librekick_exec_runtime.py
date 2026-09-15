@@ -33,6 +33,16 @@ def get_current_task_code() -> bytes:
     return bytes.fromhex("207900000004202801144e75")
 
 
+def set_current_task_code() -> bytes:
+    """Store D0 in ExecBase->ThisTask without requiring A6.
+
+    This is a private shared scheduler/runtime primitive. It intentionally
+    mirrors get_current_task_code() and is not yet a public Exec vector.
+    """
+    # MOVEA.L $00000004,A0 ; MOVE.L D0,$0114(A0) ; RTS
+    return bytes.fromhex("207900000004214001144e75")
+
+
 def jsr_absolute(addr: int) -> bytes:
     """Emit JSR absolute-long for a 68000 target address."""
     if not 0 <= addr <= 0xFFFFFFFF:
