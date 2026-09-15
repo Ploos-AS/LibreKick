@@ -9,26 +9,23 @@ assert b'exec.library\0LibreKick M2.43 prepared-task context activation slice 40
 activate=data[0x5E00:0x5F00]
 restore=data[0x5F00:0x6000]
 target=data[0x6000:0x6100]
+getsysbase=data[0x6100:0x6200]
 for op in ('40F900004D48','23CF00004D40','2017','23C000004D44','23FC0000C10000003514','23FC0000C10000004C10','13FC00020000C10F','2E790000C136','4E75'):
     assert bytes.fromhex(op) in activate, f'missing activation opcode {op}'
-# restore_code() pops A6..A2, then D7..D2.  The A-register opcodes are
-# MOVEA.L (A7)+,An: 2C5F,2A5F,285F,265F,245F.  Earlier checker
-# expectations incorrectly included A0/A1 (205F/225F), which are not part of
-# the preserved-register set and are intentionally not restored by M2.43.
-for op in ('2C5F','2A5F','285F','265F','245F',
-           '2E1F','2C1F','2A1F','281F','261F','241F','46DF','4E75'):
+for op in ('2C5F','2A5F','285F','265F','245F','2E1F','2C1F','2A1F','281F','261F','241F','46DF','4E75'):
     assert bytes.fromhex(op) in restore, f'missing restore opcode {op}'
 for op in ('40F900004D4A','23CF00004D4C','23FC4C4B343300004D50','46F900004D48','2E7900004D40','4E75'):
     assert bytes.fromhex(op) in target, f'missing target opcode {op}'
+assert getsysbase[:8] == bytes.fromhex('2039000000044e75'), 'shared GetSysBase bytes missing from ROM'
 probe=data[0x5B00:0x5E00]
 for value in (0x0000E000,0x0000E800,0x0000E7F0,0x0000E7C2,0x0000E7BE,0x0000E7F4,
               0x00F85F00,0x00F86000,0x4C4B3433,0x43000002,0x0000E506):
     assert struct.pack('>I',value) in probe, f'missing M2.43 value {value:08x}'
 assert bytes.fromhex('4EB900F85E00') in probe, 'missing prepared-task activation call'
 assert bytes.fromhex('303900004D4A0C402700') in probe, 'missing target SR verification'
+assert bytes.fromhex('4EB900F861000C8000003400') in probe, 'missing shared GetSysBase runtime call/verification'
 assert bytes.fromhex('33FC00F000DFF180') in probe
 assert bytes.fromhex('33FC000F00DFF18060FE') in probe
-# M2.42 green gate must chain into M2.43.
 prev=data[0x5600:0x5900]; sig=bytes.fromhex('33FC00F000DFF1806000')
 gp=prev.rfind(sig); assert gp>=0
 branch_abs=0x5600+gp+8
@@ -43,4 +40,4 @@ for o in range(0,len(data),4): t=ones(t,struct.unpack_from('>I',data,o)[0])
 t=(t&0xffffffff)+(t>>32)
 assert t==0xffffffff, f'bad checksum {t:08x}'
 print(f'M2.43 check PASS: {p} ({len(data)} bytes)')
-print('Exec private prepared-task activation qualification; checksum=0xffffffff')
+print('Exec prepared-task activation + shared GetSysBase ROM convergence; checksum=0xffffffff')
