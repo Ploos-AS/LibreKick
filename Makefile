@@ -1,22 +1,22 @@
 PYTHON ?= python3
 BUILD_DIR := build
-ROM := $(BUILD_DIR)/librekick-m2_43.rom
+ROM := $(BUILD_DIR)/librekick-m2_44.rom
 A1000_BOOTSTRAP_ROM := $(BUILD_DIR)/a1000/librekick-a1000.1-bootstrap.rom
 A1000_LOADER_ROM := $(BUILD_DIR)/a1000/librekick-a1000.3-bootstrap.rom
 A1000_WCS := $(BUILD_DIR)/a1000/librekick-a1000.8-wcs.bin
 A1000_KICKDISK := $(BUILD_DIR)/a1000/librekick-a1000.8-kickdisk.adf
-A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_43-a500.rom
-A500PLUS_PROFILE_ROM := $(BUILD_DIR)/a500plus/librekick-m2_43-a500plus.rom
-A600_PROFILE_ROM := $(BUILD_DIR)/a600/librekick-m2_43-a600.rom
+A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_44-a500.rom
+A500PLUS_PROFILE_ROM := $(BUILD_DIR)/a500plus/librekick-m2_44-a500plus.rom
+A600_PROFILE_ROM := $(BUILD_DIR)/a600/librekick-m2_44-a600.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_43 m2_43 a1000-bootstrap check-a1000-bootstrap qualify-a1000-bootstrap a1000-kickdisk check-a1000-kickdisk a1000-loader check-a1000-loader qualify-a1000-loader profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_44 m2_44 a1000-bootstrap check-a1000-bootstrap qualify-a1000-bootstrap a1000-kickdisk check-a1000-kickdisk a1000-loader check-a1000-loader qualify-a1000-loader profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
 
 all: $(ROM)
-$(ROM): tools/make_m2_43_rom.py
+$(ROM): tools/make_m2_44_rom.py
 	mkdir -p $(BUILD_DIR)
-	$(PYTHON) tools/make_m2_43_rom.py $@
+	$(PYTHON) tools/make_m2_44_rom.py $@
 check: $(ROM)
-	$(PYTHON) tools/check_m2_43.py $(ROM)
+	$(PYTHON) tools/check_m2_44.py $(ROM)
 a1000-bootstrap:
 	mkdir -p $(BUILD_DIR)/a1000
 	$(PYTHON) tools/make_a1000_0_bootstrap.py $(A1000_BOOTSTRAP_ROM)
@@ -36,12 +36,12 @@ check-a1000-loader: a1000-loader check-a1000-kickdisk
 	$(PYTHON) tools/check_a1000_3_bootstrap.py $(A1000_LOADER_ROM)
 qualify-a1000-loader: check-a1000-loader
 	fs-uae configs/fs-uae/a1000-bootstrap-current.fs-uae
-qualify-m2_43: check
-	fs-uae configs/fs-uae/a500-m2_43.fs-uae
-m2_43:
+qualify-m2_44: check
+	fs-uae configs/fs-uae/a500-m2_44.fs-uae
+m2_44:
 	mkdir -p $(BUILD_DIR)
-	$(PYTHON) tools/make_m2_43_rom.py $(BUILD_DIR)/librekick-m2_43.rom
-	$(PYTHON) tools/check_m2_43.py $(BUILD_DIR)/librekick-m2_43.rom
+	$(PYTHON) tools/make_m2_44_rom.py $(BUILD_DIR)/librekick-m2_44.rom
+	$(PYTHON) tools/check_m2_44.py $(BUILD_DIR)/librekick-m2_44.rom
 profile-a500:
 	$(PYTHON) tools/build_profile.py a500
 qualify-profile-a500: profile-a500
