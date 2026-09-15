@@ -1,7 +1,7 @@
 [fs-uae]
 amiga_model = A1000
 kickstart_file = ../../build/a1000/librekick-a1000.3-bootstrap.rom
-floppy_drive_0 = ../../build/a1000/librekick-a1000.7-kickdisk.adf
+floppy_drive_0 = ../../build/a1000/librekick-a1000.8-kickdisk.adf
 accuracy = -1
 fullscreen = 0
 window_width = 960
