@@ -13,18 +13,30 @@ jobs:
   fs-uae-runtime:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+      SDL_AUDIODRIVER: dummy
     steps:
       - uses: actions/checkout@v4
 
       - name: Install FS-UAE runtime tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil
+          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil mesa-utils libgl1-mesa-dri
+
+      - name: Verify Xvfb software OpenGL
+        run: |
+          xvfb-run -a -s '-screen 0 1280x900x24 +extension GLX +render -noreset' bash -eu -o pipefail -c '
+            xdpyinfo >/dev/null
+            glxinfo -B | tee /tmp/librekick-glxinfo.txt
+            glxinfo -B | grep -E "OpenGL renderer string:.*(llvmpipe|softpipe)"
+          '
 
       - name: Run current LibreKick ROM in FS-UAE
         run: |
           chmod +x ci/fs-uae/run-runtime-color-gate.sh
-          xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
+          xvfb-run -a -s '-screen 0 1280x900x24 +extension GLX +render -noreset' ci/fs-uae/run-runtime-color-gate.sh
 
       - name: Upload FS-UAE runtime evidence
         if: always()
@@ -38,4 +50,5 @@ jobs:
             build/fs-uae/runtime/fs-uae-version.txt
             build/fs-uae/runtime/rom.txt
             build/fs-uae/runtime/config.txt
+            /tmp/librekick-glxinfo.txt
           if-no-files-found: warn
