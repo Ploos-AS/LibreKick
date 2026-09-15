@@ -1,63 +1,44 @@
 #!/usr/bin/env python3
-"""Static validation for LibreKick A1000.4 WCS diagnostic payload and disk."""
+"""Static validation for LibreKick A1000.5 WCS Exec-convergence payload/disk."""
 from __future__ import annotations
-
 from hashlib import sha256
 from pathlib import Path
-import struct
-import sys
-
-SECTOR_SIZE = 512
-ADF_SIZE = 80 * 2 * 11 * SECTOR_SIZE
-WCS_SIZE = 256 * 1024
-WCS_BASE = 0x00FC0000
-RESET_SP = 0x0007FFFC
-ENTRY_PC = WCS_BASE + 8
-PAYLOAD_OFFSET = SECTOR_SIZE
-MAGIC = b"LIBREKICK-A1000\0"
-FORMAT_VERSION = 2
-PAYLOAD_MARKER = b"LIBREKICK-A1000.4\0WCS-DIAGNOSTIC\0"
-DISK_MARKER = b"LIBREKICK-A1000.4\0KICKDISK-CONTAINER\0"
-CODE = bytes.fromhex("33fc00f000dff18060fe")
+import struct, sys
+from librekick_exec_abi import EXEC_BASE, LIB_VERSION_OFF, LIB_REVISION_OFF, LIB_IDSTRING_OFF, EXEC_VERSION
+import make_a1000_2_kickdisk as builder
 
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else "build/a1000")
-    payload_path = root / "librekick-a1000.4-wcs.bin"
-    disk_path = root / "librekick-a1000.4-kickdisk.adf"
-    payload = payload_path.read_bytes()
-    disk = disk_path.read_bytes()
-
-    assert len(payload) == WCS_SIZE, f"payload size: expected {WCS_SIZE}, got {len(payload)}"
-    assert len(disk) == ADF_SIZE, f"disk size: expected {ADF_SIZE}, got {len(disk)}"
-    assert disk[:len(MAGIC)] == MAGIC, "disk magic missing"
+    payload_path = root / "librekick-a1000.5-wcs.bin"
+    disk_path = root / "librekick-a1000.5-kickdisk.adf"
+    payload = payload_path.read_bytes(); disk = disk_path.read_bytes()
+    assert len(payload) == builder.WCS_SIZE
+    assert len(disk) == builder.ADF_SIZE
+    assert disk[:len(builder.MAGIC)] == builder.MAGIC
     version, offset, length, load_addr, entry_pc, reset_sp = struct.unpack_from(">IIIIII", disk, 16)
-    assert version == FORMAT_VERSION, f"format version mismatch: {version}"
-    assert offset == PAYLOAD_OFFSET, f"payload offset mismatch: {offset}"
-    assert length == WCS_SIZE, f"payload length mismatch: {length}"
-    assert load_addr == WCS_BASE, f"WCS base mismatch: ${load_addr:08x}"
-    assert entry_pc == ENTRY_PC, f"entry PC mismatch: ${entry_pc:08x}"
-    assert reset_sp == RESET_SP, f"reset SP mismatch: ${reset_sp:08x}"
-    assert disk[80:80 + len(DISK_MARKER)] == DISK_MARKER, "disk marker missing"
-
-    digest = sha256(payload).digest()
-    assert disk[40:72] == digest, "payload SHA-256 manifest mismatch"
-    embedded = disk[offset:offset + length]
-    assert embedded == payload, "embedded WCS payload differs from standalone payload"
-
+    assert version == builder.FORMAT_VERSION
+    assert offset == builder.PAYLOAD_OFFSET and length == builder.WCS_SIZE
+    assert load_addr == builder.WCS_BASE and entry_pc == builder.ENTRY_PC and reset_sp == builder.RESET_SP
+    assert disk[40:72] == sha256(payload).digest()
+    assert disk[80:80 + len(builder.DISK_MARKER)] == builder.DISK_MARKER
+    assert disk[offset:offset + length] == payload
     sp, pc = struct.unpack_from(">II", payload, 0)
-    assert sp == RESET_SP, f"payload reset SP mismatch: ${sp:08x}"
-    assert pc == ENTRY_PC, f"payload entry PC mismatch: ${pc:08x}"
-    assert payload[8:8 + len(CODE)] == CODE, "WCS diagnostic code mismatch"
-    assert payload[0x100:0x100 + len(PAYLOAD_MARKER)] == PAYLOAD_MARKER, "A1000.4 WCS marker missing"
-
-    print(f"A1000.4 static check PASS: {disk_path} ({len(disk)} bytes)")
+    assert sp == builder.RESET_SP and pc == builder.ENTRY_PC
+    code = builder.runtime_code()
+    assert payload[8:8 + len(code)] == code, "A1000.5 Exec ABI runtime code mismatch"
+    assert payload[0x100:0x100 + len(builder.PAYLOAD_MARKER)] == builder.PAYLOAD_MARKER
+    assert payload[builder.IDENT_OFF:builder.IDENT_OFF + len(builder.IDENT)] == builder.IDENT
+    # Guard the shared contract values used by both ordinary ROM and WCS paths.
+    assert EXEC_BASE == 0x00003400
+    assert (LIB_VERSION_OFF, LIB_REVISION_OFF, LIB_IDSTRING_OFF) == (20, 22, 24)
+    assert EXEC_VERSION == 40
+    print(f"A1000.5 static check PASS: {disk_path} ({len(disk)} bytes)")
     print(f"WCS payload={len(payload)} bytes load=${load_addr:08x} entry=${entry_pc:08x}")
+    print(f"shared_exec_abi=ExecBase@${EXEC_BASE:08x} version={EXEC_VERSION}.{builder.REVISION}")
     print(f"payload_sha256={sha256(payload).hexdigest()}")
-    print("payload=A1000.4 native WCS diagnostic runtime")
     print("format=LibreKick-private bootstrap container v2; stock Kickstart-disk compatibility not claimed")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
