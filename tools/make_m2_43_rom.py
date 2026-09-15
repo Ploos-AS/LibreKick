@@ -5,6 +5,8 @@ import struct, sys
 import make_m2_42_rom as p
 import make_m2_34_rom as a
 import make_m2_17_rom as m
+from librekick_exec_abi import EXEC_BASE
+from librekick_exec_runtime import get_sysbase_code, jsr_absolute
 
 MARKER=b'LIBREKICK-M2.43\0EXEC-PREPARED-TASK-ACTIVATE\0'
 IDENT=b'exec.library\0LibreKick M2.43 prepared-task context activation slice 40.43\0'
@@ -16,6 +18,8 @@ RESTORE_OFF=0x5F00
 RESTORE_END=0x6000
 TARGET_OFF=0x6000
 TARGET_END=0x6100
+GETSYSBASE_OFF=0x6100
+GETSYSBASE_END=0x6200
 
 THIS_TASK=0x00003514
 CURRENT_TASK_PTR=0x00004C10
@@ -57,37 +61,35 @@ def store_a(r,addr): return opw(0x23C8+r)+struct.pack('>I',addr)
 def activate_code():
     """Switch A7/ThisTask to a prebuilt TASK_A context and enter it by RTS."""
     q=bytearray()
-    q+=bytes.fromhex('40F9')+struct.pack('>I',CALLER_SR_CELL)       # caller SR
-    q+=bytes.fromhex('23CF')+struct.pack('>I',CALLER_SP_CELL)       # caller A7
-    q+=bytes.fromhex('2017')                                        # caller return PC
+    q+=bytes.fromhex('40F9')+struct.pack('>I',CALLER_SR_CELL)
+    q+=bytes.fromhex('23CF')+struct.pack('>I',CALLER_SP_CELL)
+    q+=bytes.fromhex('2017')
     q+=bytes.fromhex('23C0')+struct.pack('>I',CALLER_PC_CELL)
     q+=m.ml(a.TASK_A,THIS_TASK)
     q+=m.ml(a.TASK_A,CURRENT_TASK_PTR)
     q+=bytes.fromhex('13FC0002')+struct.pack('>I',a.TASK_A+TC_STATE)
-    q+=bytes.fromhex('2E79')+struct.pack('>I',a.TASK_A+TC_SPREG)    # prepared transfer SP
-    q+=bytes.fromhex('4E75')                                        # pop RESTORE_OFF from task stack
+    q+=bytes.fromhex('2E79')+struct.pack('>I',a.TASK_A+TC_SPREG)
+    q+=bytes.fromhex('4E75')
     return bytes(q)
 
 
 def restore_code():
-    """Restore the prepared register/SR frame, then RTS into target entry PC."""
     q=bytearray()
     for r in reversed(A_REGS): q+=pop_a(r)
     for r in reversed(D_REGS): q+=pop_d(r)
-    q+=bytes.fromhex('46DF')                                        # prepared SR
-    q+=bytes.fromhex('4E75')                                        # prepared target PC
+    q+=bytes.fromhex('46DF')
+    q+=bytes.fromhex('4E75')
     return bytes(q)
 
 
 def target_code():
-    """Observe restored target state, then return to the qualification harness."""
     q=bytearray()
     q+=bytes.fromhex('40F9')+struct.pack('>I',TARGET_SR_CELL)
     q+=bytes.fromhex('23CF')+struct.pack('>I',TARGET_ENTRY_SP_CELL)
     for r in D_REGS: q+=store_d(r,OBS_CELLS[('D',r)])
     for r in A_REGS: q+=store_a(r,OBS_CELLS[('A',r)])
     q+=m.ml(ARRIVED_MAGIC,ARRIVED_CELL)
-    q+=bytes.fromhex('46F9')+struct.pack('>I',CALLER_SR_CELL)       # restore harness SR
+    q+=bytes.fromhex('46F9')+struct.pack('>I',CALLER_SR_CELL)
     q+=bytes.fromhex('2E79')+struct.pack('>I',CALLER_SP_CELL)
     q+=bytes.fromhex('4E75')
     return bytes(q)
@@ -101,14 +103,16 @@ def build():
     if gp<0: raise ValueError('M2.42 final success gate not found')
     branch_pos=p.PROBE_OFF+gp+8
 
-    blocks=((ACTIVATE_OFF,ACTIVATE_END,activate_code()),(RESTORE_OFF,RESTORE_END,restore_code()),(TARGET_OFF,TARGET_END,target_code()))
+    blocks=((ACTIVATE_OFF,ACTIVATE_END,activate_code()),
+            (RESTORE_OFF,RESTORE_END,restore_code()),
+            (TARGET_OFF,TARGET_END,target_code()),
+            (GETSYSBASE_OFF,GETSYSBASE_END,get_sysbase_code()))
     for lo,hi,code in blocks:
         if lo+len(code)>hi: raise ValueError('M2.43 helper exceeds dedicated ROM window')
         if any(b!=0xff for b in image[lo:hi]): raise ValueError('M2.43 ROM helper window is not unused')
         image[lo:lo+len(code)]=code
 
     c=bytearray(); fails=[]
-    # Build TASK_A metadata and its complete prepared context frame.
     c+=m.ml(0x0000E000,a.TASK_A+TC_SPLOWER)
     c+=m.ml(0x0000E800,a.TASK_A+TC_SPUPPER)
     c+=m.ml(TRANSFER_SP,a.TASK_A+TC_SPREG)
@@ -141,9 +145,14 @@ def build():
     c+=bytes.fromhex('3039')+struct.pack('>I',TARGET_SR_CELL)
     c+=bytes.fromhex('0C40')+struct.pack('>H',TARGET_SR)
     fails.append(m.branch(c,0x6600))
-    # TASK_A must be marked running.
     c+=bytes.fromhex('1039')+struct.pack('>I',a.TASK_A+TC_STATE)
     c+=bytes.fromhex('0C0002')
+    fails.append(m.branch(c,0x6600))
+
+    # Cross-profile convergence gate: execute the same shared GetSysBase bytes
+    # used by A1000.6, now directly from the retained 512 KiB ROM image.
+    c+=jsr_absolute(m.ROM_BASE+GETSYSBASE_OFF)
+    c+=bytes.fromhex('0C80')+struct.pack('>I',EXEC_BASE)
     fails.append(m.branch(c,0x6600))
 
     c+=m.mw(0x00f0,m.COLOR00); ok=m.branch(c,0x6000)
