@@ -23,7 +23,7 @@ jobs:
       - name: Install FS-UAE runtime tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil mesa-utils libgl1-mesa-dri
+          sudo apt-get install -y fs-uae xvfb x11-utils xdotool imagemagick python3-pil mesa-utils libgl1-mesa-dri
 
       - name: Verify Xvfb software OpenGL
         run: |
