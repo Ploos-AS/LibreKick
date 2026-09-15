@@ -23,11 +23,9 @@ def main() -> int:
     assert MARKER in data, "A1000.3 loader marker missing"
 
     # Constants used by the generated FS-UAE runtime image must be present in
-    # the final binary. CIAA PRA is intentionally absent from this image:
-    # runtime_source() bypasses /RDY and track-zero sensing because those
-    # mechanical signals are not authoritative in the automated emulator
-    # gate. The canonical hardware source retains both checks and is covered
-    # by the separate real-hardware qualification path.
+    # the final binary. /RDY and track-zero polling are bypassed by the
+    # emulator overlay, but CIA-A PRA/DDRA must remain because reset OVL must
+    # be released before the bootstrap can use low Chip RAM.
     for value, name in [
         (0x00FC0000, "WCS base"),
         (0x00FC0008, "WCS entry"),
@@ -37,6 +35,8 @@ def main() -> int:
         (0x00DFF096, "DMACON"),
         (0x00DFF09E, "ADKCON"),
         (0x00BFD100, "CIAB PRB"),
+        (0x00BFE001, "CIAA PRA / OVL"),
+        (0x00BFE201, "CIAA DDRA"),
     ]:
         needle = struct.pack(">I", value)
         assert needle in data, f"missing {name} constant ${value:08x}"
@@ -46,7 +46,7 @@ def main() -> int:
 
     print(f"A1000.3 static check PASS: {path} ({len(data)} bytes)")
     print(f"reset_sp=${sp:08x} reset_pc=${pc:08x}")
-    print("scope=DF0 standard-MFM sector loader + private manifest + 256KiB WCS handoff")
+    print("scope=OVL release + DF0 standard-MFM sector loader + private manifest + 256KiB WCS handoff")
     print("runtime overlay bypasses /RDY and track-zero sensing; hardware qualification is separate")
     return 0
 
