@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static validation for LibreKick A1000.2 WCS payload and disk container."""
+"""Static validation for LibreKick A1000.4 WCS diagnostic payload and disk."""
 from __future__ import annotations
 
 from hashlib import sha256
@@ -16,15 +16,15 @@ ENTRY_PC = WCS_BASE + 8
 PAYLOAD_OFFSET = SECTOR_SIZE
 MAGIC = b"LIBREKICK-A1000\0"
 FORMAT_VERSION = 2
-PAYLOAD_MARKER = b"LIBREKICK-A1000.2\0WCS-PAYLOAD\0"
-DISK_MARKER = b"LIBREKICK-A1000.2\0KICKDISK-CONTAINER\0"
+PAYLOAD_MARKER = b"LIBREKICK-A1000.4\0WCS-DIAGNOSTIC\0"
+DISK_MARKER = b"LIBREKICK-A1000.4\0KICKDISK-CONTAINER\0"
 CODE = bytes.fromhex("33fc00f000dff18060fe")
 
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else "build/a1000")
-    payload_path = root / "librekick-a1000.2-wcs.bin"
-    disk_path = root / "librekick-a1000.2-kickdisk.adf"
+    payload_path = root / "librekick-a1000.4-wcs.bin"
+    disk_path = root / "librekick-a1000.4-kickdisk.adf"
     payload = payload_path.read_bytes()
     disk = disk_path.read_bytes()
 
@@ -49,12 +49,13 @@ def main() -> int:
     assert sp == RESET_SP, f"payload reset SP mismatch: ${sp:08x}"
     assert pc == ENTRY_PC, f"payload entry PC mismatch: ${pc:08x}"
     assert payload[8:8 + len(CODE)] == CODE, "WCS diagnostic code mismatch"
-    assert payload[0x100:0x100 + len(PAYLOAD_MARKER)] == PAYLOAD_MARKER, "WCS marker missing"
+    assert payload[0x100:0x100 + len(PAYLOAD_MARKER)] == PAYLOAD_MARKER, "A1000.4 WCS marker missing"
 
-    print(f"A1000.2 static check PASS: {disk_path} ({len(disk)} bytes)")
+    print(f"A1000.4 static check PASS: {disk_path} ({len(disk)} bytes)")
     print(f"WCS payload={len(payload)} bytes load=${load_addr:08x} entry=${entry_pc:08x}")
     print(f"payload_sha256={sha256(payload).hexdigest()}")
-    print("format=LibreKick-private bootstrap container; stock Kickstart-disk compatibility not claimed")
+    print("payload=A1000.4 native WCS diagnostic runtime")
+    print("format=LibreKick-private bootstrap container v2; stock Kickstart-disk compatibility not claimed")
     return 0
 
 
