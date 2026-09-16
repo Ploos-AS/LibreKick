@@ -56,14 +56,17 @@ def build():
     rom[HANDOFF_OFF:HANDOFF_OFF+len(helper)]=helper
     rom[PROBE_OFF:PROBE_OFF+len(probe)]=probe
     rom[RESUME_OFF:RESUME_OFF+len(resume)]=resume
-    # Redirect M2.45's final green gate into the stack-handoff probe.
-    sig=bytes.fromhex("33fc00f000dff18060fe")
-    pos=rom.find(sig,previous.SWAP_PROBE_OFF,previous.SWAP_PROBE_END)
-    if pos<0: raise ValueError("M2.45 success gate not found")
-    branch=pos+8
+    # M2.45 patches its successful green gate to a word-displacement BRA.W
+    # into the local idle loop. Redirect that existing success edge into the
+    # M2.46 stack-handoff probe. The displacement bytes are variable, so match
+    # only the green write plus BRA.W opcode, as M2.45 itself does for M2.44.
+    sig=bytes.fromhex("33fc00f000dff1806000")
+    window=rom[previous.SWAP_PROBE_OFF:previous.SWAP_PROBE_END]
+    rel=window.rfind(sig)
+    if rel<0: raise ValueError("M2.45 success gate not found")
+    branch=previous.SWAP_PROBE_OFF+rel+8
     disp=PROBE_OFF-(branch+2)
-    rom[branch:branch+2]=bytes.fromhex("6000")
-    rom[branch+2:branch+4]=struct.pack(">h",disp)
+    struct.pack_into(">h",rom,branch+2,disp)
     # Retain deterministic identity in an unused area.
     meta=0x6A00
     if any(b != 0xFF for b in rom[meta:meta+0x100]): raise ValueError("M2.46 metadata window not free")
