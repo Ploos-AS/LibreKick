@@ -1,0 +1,6 @@
+[fs-uae]
+amiga_model = A500
+kickstart_file = ../../build/librekick-m2_47.rom
+chip_memory = 512
+fast_memory = 0
+accuracy = 1
