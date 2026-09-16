@@ -4,11 +4,11 @@
   "family": "ECS",
   "cpu": "68000",
   "rom_size": 524288,
-  "status": "emulator-qualified",
-  "current_milestone": "m2_46",
-  "generator": "tools/make_m2_46_rom.py",
-  "checker": "tools/check_m2_46.py",
+  "status": "qualification-pending",
+  "current_milestone": "m2_47",
+  "generator": "tools/make_m2_47_rom.py",
+  "checker": "tools/check_m2_47.py",
   "fs_uae_config": "configs/fs-uae/a500plus-current.fs-uae",
-  "artifact": "build/a500plus/librekick-m2_46-a500plus.rom",
-  "notes": "Retained Amiga 500 Plus ECS profile; M2.46 adds shared private HandoffTaskStack convergence."
+  "artifact": "build/a500plus/librekick-m2_47-a500plus.rom",
+  "notes": "Retained Amiga 500 Plus ECS profile; M2.47 adds the private SR/D2-D7/A2-A6 CPU context frame."
 }
