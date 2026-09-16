@@ -15,10 +15,6 @@ CONTEXT_HANDOFF_END=0x6C00
 CONTEXT_RESUME_OFF=0x6C00
 CONTEXT_RESUME_END=0x6D00
 PROBE_OFF=0x6D00
-# The register/SR verification probe is deliberately larger than the earlier
-# pointer/stack probes: it validates eleven saved registers plus SR and frame
-# metadata. Reserve three 256-byte slots so future checks do not silently
-# collide with metadata.
 PROBE_END=0x7000
 META_OFF=0x7000
 TASK=0x0000CA47
@@ -114,12 +110,20 @@ def build():
     hand=context_handoff_code(); resume=context_resume_code(); probe=probe_code()
     for lo,hi,data in ((CONTEXT_HANDOFF_OFF,CONTEXT_HANDOFF_END,hand),(CONTEXT_RESUME_OFF,CONTEXT_RESUME_END,resume),(PROBE_OFF,PROBE_END,probe)):
         if any(b!=0xFF for b in rom[lo:hi]): raise ValueError(f'M2.47 ROM window {lo:#x}..{hi:#x} is not free')
-        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}: {len(data)} > {hi-lo}')
+        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}')
         rom[lo:lo+len(data)]=data
-    sig=bytes.fromhex('33fc00f000dff1806000')
-    window=rom[previous.PROBE_OFF:previous.PROBE_END]; rel=window.rfind(sig)
-    if rel<0: raise ValueError('M2.46 success gate not found')
-    branch=previous.PROBE_OFF+rel+8; struct.pack_into('>h',rom,branch+2,PROBE_OFF-(branch+2))
+    # M2.46 terminates its successful probe with a green COLOR00 write followed
+    # by BRA.S -2 (60fe), unlike M2.45's BRA.W success edge. Redirect that
+    # terminal edge to M2.47. BRA.S cannot reach 0x6d00, so replace the two-byte
+    # idle branch with a six-byte absolute JMP, using the still-free bytes that
+    # immediately follow the M2.46 probe.
+    sig=bytes.fromhex('33fc00f000dff18060fe')
+    window=rom[previous.PROBE_OFF:previous.PROBE_END]
+    rel=window.rfind(sig)
+    if rel<0: raise ValueError('M2.46 terminal success gate not found')
+    branch=previous.PROBE_OFF+rel+8
+    if any(b!=0xFF for b in rom[branch+2:branch+6]): raise ValueError('M2.46 success gate has no room for M2.47 JMP')
+    rom[branch:branch+6]=bytes.fromhex('4ef9')+struct.pack('>I',ROM_BASE+PROBE_OFF)
     if any(b!=0xFF for b in rom[META_OFF:META_OFF+0x100]): raise ValueError('M2.47 metadata window not free')
     rom[META_OFF:META_OFF+len(MARKER)]=MARKER; rom[META_OFF+0x60:META_OFF+0x60+len(IDENT)]=IDENT
     rom[runtime.MARKER_OFF:runtime.IDENT_OFF]=b'\xff'*(runtime.IDENT_OFF-runtime.MARKER_OFF); rom[runtime.MARKER_OFF:runtime.MARKER_OFF+len(MARKER)]=MARKER
