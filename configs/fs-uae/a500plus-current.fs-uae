@@ -1,6 +1,6 @@
 [fs-uae]
 amiga_model = A500+
-kickstart_file = ../../build/a500plus/librekick-m2_46-a500plus.rom
+kickstart_file = ../../build/a500plus/librekick-m2_47-a500plus.rom
 accuracy = -1
 fullscreen = 0
 window_width = 960
