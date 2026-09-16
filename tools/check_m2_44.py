@@ -14,6 +14,7 @@ target=data[0x6000:0x6100]
 getsysbase=data[0x6100:0x6200]
 getcurrent=data[0x6200:0x6300]
 setcurrent=data[0x6300:0x6400]
+task_probe=data[0x6400:0x6500]
 assert bytes.fromhex('4EB900F85E00') in data[0x5B00:0x5E00], 'missing prepared-task activation call'
 assert bytes.fromhex('2039000000044e75') == getsysbase[:8], 'shared GetSysBase bytes missing'
 assert bytes.fromhex('207900000004202801144e75') == getcurrent[:12], 'shared GetCurrentTask bytes missing'
@@ -22,27 +23,29 @@ assert bytes.fromhex('4E75') in activate
 assert bytes.fromhex('46DF4E75') in restore
 assert bytes.fromhex('4E75') in target
 
+# Existing M2.43 shared GetSysBase gate remains in the old probe window.
 probe=data[0x5B00:0x5E00]
-# Existing M2.43 shared GetSysBase gate is retained.
 assert bytes.fromhex('4EB900F861000C8000003400') in probe
-# M2.44 consumes real M2 current-task state, mutates it through the shared
-# setter, reads it back, and restores TASK_A before success.
-assert bytes.fromhex('4EB900F862000C800000C100') in probe, 'missing GetCurrentTask/TASK_A verification'
-assert bytes.fromhex('203C0000C8444EB900F86300') in probe, 'missing SetCurrentTask sentinel call'
-assert bytes.fromhex('4EB900F862000C800000C844') in probe, 'missing sentinel readback'
-assert bytes.fromhex('203C0000C1004EB900F86300') in probe, 'missing TASK_A restore call'
-assert bytes.fromhex('0CB90000C10000003514') in probe, 'missing restored ExecBase->ThisTask verification'
-assert bytes.fromhex('33FC00F000DFF180') in probe
-assert bytes.fromhex('33FC000F00DFF18060FE') in probe
 
-# The old M2.43 success branch must now enter the M2.44 extension rather than
-# jumping directly to the old idle loop.
+# M2.44 task-runtime qualification lives in its dedicated 0x6400..0x6500
+# window. It consumes the real M2 current-task state, mutates it through the
+# shared setter, reads it back, and restores TASK_A before success.
+assert bytes.fromhex('4EB900F862000C800000C100') in task_probe, 'missing GetCurrentTask/TASK_A verification'
+assert bytes.fromhex('203C0000C8444EB900F86300') in task_probe, 'missing SetCurrentTask sentinel call'
+assert bytes.fromhex('4EB900F862000C800000C844') in task_probe, 'missing sentinel readback'
+assert bytes.fromhex('203C0000C1004EB900F86300') in task_probe, 'missing TASK_A restore call'
+assert bytes.fromhex('0CB90000C10000003514') in task_probe, 'missing restored ExecBase->ThisTask verification'
+assert bytes.fromhex('33FC00F000DFF180') in task_probe
+assert bytes.fromhex('33FC000F00DFF18060FE') in task_probe
+
+# The old M2.43 success branch must now enter the M2.44 dedicated extension
+# rather than jumping directly to the old idle loop.
 sig=bytes.fromhex('33FC00F000DFF1806000')
 gp=probe.rfind(sig); assert gp>=0
 branch_abs=0x5B00+gp+8
 disp=struct.unpack_from('>h',data,branch_abs+2)[0]
 ext_abs=branch_abs+2+disp
-assert 0x5B00 <= ext_abs < 0x5E00
+assert ext_abs == 0x6400, f'unexpected M2.44 task probe target {ext_abs:#x}'
 assert data[ext_abs:ext_abs+6] == bytes.fromhex('4EB900F86200')
 
 def ones(t,v):
