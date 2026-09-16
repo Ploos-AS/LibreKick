@@ -15,8 +15,12 @@ CONTEXT_HANDOFF_END=0x6C00
 CONTEXT_RESUME_OFF=0x6C00
 CONTEXT_RESUME_END=0x6D00
 PROBE_OFF=0x6D00
-PROBE_END=0x6E00
-META_OFF=0x6E00
+# The register/SR verification probe is deliberately larger than the earlier
+# pointer/stack probes: it validates eleven saved registers plus SR and frame
+# metadata. Reserve three 256-byte slots so future checks do not silently
+# collide with metadata.
+PROBE_END=0x7000
+META_OFF=0x7000
 TASK=0x0000CA47
 ORIGINAL_SP_CELL=0x0000CC00
 CALLER_PC_CELL=0x0000CC04
@@ -110,7 +114,7 @@ def build():
     hand=context_handoff_code(); resume=context_resume_code(); probe=probe_code()
     for lo,hi,data in ((CONTEXT_HANDOFF_OFF,CONTEXT_HANDOFF_END,hand),(CONTEXT_RESUME_OFF,CONTEXT_RESUME_END,resume),(PROBE_OFF,PROBE_END,probe)):
         if any(b!=0xFF for b in rom[lo:hi]): raise ValueError(f'M2.47 ROM window {lo:#x}..{hi:#x} is not free')
-        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}')
+        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}: {len(data)} > {hi-lo}')
         rom[lo:lo+len(data)]=data
     sig=bytes.fromhex('33fc00f000dff1806000')
     window=rom[previous.PROBE_OFF:previous.PROBE_END]; rel=window.rfind(sig)
