@@ -10,6 +10,7 @@ import struct
 
 SYSBASE_ADDR = 4
 THIS_TASK_OFF = 0x114
+TC_SPREG_OFF = 0x36
 
 
 def get_sysbase_code() -> bytes:
@@ -28,15 +29,23 @@ def set_current_task_code() -> bytes:
 
 
 def swap_current_task_code() -> bytes:
-    """Replace ExecBase->ThisTask with D0 and return the previous pointer in D0.
-
-    Private scheduler/runtime primitive. D1 is scratch. This is deliberately
-    not a public Exec vector or a complete task switch: it only provides the
-    reversible task-pointer handoff needed by later scheduler work.
-    """
-    # MOVEA.L $00000004,A0 ; MOVE.L $0114(A0),D1 ;
-    # MOVE.L D0,$0114(A0) ; MOVE.L D1,D0 ; RTS
+    """Replace ExecBase->ThisTask with D0 and return the previous pointer in D0."""
     return bytes.fromhex("207900000004222801142140011420014e75")
+
+
+def handoff_task_stack_code() -> bytes:
+    """Privately hand off execution to D0's prepared task stack.
+
+    Saves the post-JSR A7 in old ThisTask->tc_SPReg, installs D0 as ThisTask,
+    loads A7 from new ThisTask->tc_SPReg, returns the old task pointer in D0,
+    then RTS transfers through the return PC prepared on the new stack.
+    D1/A0/A1 are scratch. This is not a public Exec Switch/Dispatch vector and
+    does not save or restore the complete CPU register/SR context.
+    """
+    # MOVEA.L $00000004,A0 ; MOVEA.L $0114(A0),A1 ; MOVE.L A7,$0036(A1)
+    # MOVE.L A1,D1 ; MOVEA.L D0,A1 ; MOVE.L D0,$0114(A0)
+    # MOVEA.L $0036(A1),A7 ; MOVE.L D1,D0 ; RTS
+    return bytes.fromhex("20790000000422680114234f003622092240214001142e69003620014e75")
 
 
 def jsr_absolute(addr: int) -> bytes:
