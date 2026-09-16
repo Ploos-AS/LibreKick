@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil binutils-m68k-linux-gnu
 
-      - name: Run A1000.3 DF0 loader with A1000.10 task stack handoff WCS runtime in FS-UAE
+      - name: Run A1000.3 DF0 loader with A1000.11 private CPU context WCS runtime in FS-UAE
         env:
           LIBREKICK_RUNTIME_ROM: build/a1000/librekick-a1000.3-bootstrap.rom
           LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a1000-bootstrap-current.fs-uae
@@ -46,6 +46,6 @@ jobs:
             build/fs-uae/a1000-bootstrap/config.txt
             build/fs-uae/a1000-bootstrap/wait-seconds.txt
             build/a1000/librekick-a1000.3-bootstrap.rom
-            build/a1000/librekick-a1000.10-wcs.bin
-            build/a1000/librekick-a1000.10-kickdisk.adf
+            build/a1000/librekick-a1000.11-wcs.bin
+            build/a1000/librekick-a1000.11-kickdisk.adf
           if-no-files-found: error
