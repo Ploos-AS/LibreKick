@@ -4,13 +4,13 @@ from __future__ import annotations
 import struct, sys
 from pathlib import Path
 import make_m2_45_rom as previous
-from librekick_exec_runtime import TC_SPREG_OFF, handoff_task_stack_code, jsr_absolute
+import make_m2_17_rom as runtime
+from librekick_exec_abi import EXEC_BASE
+from librekick_exec_runtime import THIS_TASK_OFF, TC_SPREG_OFF, handoff_task_stack_code, jsr_absolute
 
-ROM_BASE=previous.ROM_BASE
-COLOR00=previous.COLOR00
-EXEC_BASE=previous.EXEC_BASE
-THIS_TASK_OFF=previous.THIS_TASK_OFF
-TASK_A=previous.TASK_A
+ROM_BASE=runtime.ROM_BASE
+COLOR00=runtime.COLOR00
+TASK_A=previous.a.TASK_A
 HANDOFF_OFF=0x6700
 HANDOFF_END=0x6800
 PROBE_OFF=0x6800
@@ -58,10 +58,10 @@ def build():
     rom[RESUME_OFF:RESUME_OFF+len(resume)]=resume
     # Redirect M2.45's final green gate into the stack-handoff probe.
     sig=bytes.fromhex("33fc00f000dff18060fe")
-    pos=rom.find(sig,0x6600,0x6700)
+    pos=rom.find(sig,previous.SWAP_PROBE_OFF,previous.SWAP_PROBE_END)
     if pos<0: raise ValueError("M2.45 success gate not found")
     branch=pos+8
-    disp=(ROM_BASE+PROBE_OFF)-((ROM_BASE+branch)+2)
+    disp=PROBE_OFF-(branch+2)
     rom[branch:branch+2]=bytes.fromhex("6000")
     rom[branch+2:branch+4]=struct.pack(">h",disp)
     # Retain deterministic identity in an unused area.
@@ -69,7 +69,17 @@ def build():
     if any(b != 0xFF for b in rom[meta:meta+0x100]): raise ValueError("M2.46 metadata window not free")
     rom[meta:meta+len(MARKER)]=MARKER
     rom[meta+0x60:meta+0x60+len(IDENT)]=IDENT
-    previous.finalize_checksum(rom)
+    # Replace the inherited milestone identity as well, matching M2.45 policy.
+    rom[runtime.MARKER_OFF:runtime.IDENT_OFF]=b"\xff"*(runtime.IDENT_OFF-runtime.MARKER_OFF)
+    rom[runtime.MARKER_OFF:runtime.MARKER_OFF+len(MARKER)]=MARKER
+    rom[runtime.IDENT_OFF:runtime.NAME_A_OFF]=b"\xff"*(runtime.NAME_A_OFF-runtime.IDENT_OFF)
+    rom[runtime.IDENT_OFF:runtime.IDENT_OFF+len(IDENT)]=IDENT
+    struct.pack_into(">I",rom,runtime.ROM_SIZE-4,0)
+    total=0
+    for off in range(0,runtime.ROM_SIZE-4,4):
+        total=runtime.ones(total,struct.unpack_from(">I",rom,off)[0])
+    total=(total&0xffffffff)+(total>>32)
+    struct.pack_into(">I",rom,runtime.ROM_SIZE-4,(~total)&0xffffffff)
     return bytes(rom)
 
 def main():
