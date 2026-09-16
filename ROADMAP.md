@@ -2,9 +2,17 @@
 
 ## Project-wide machine-variant policy
 
-LibreKick is not a single generic ROM image. The project will build, qualify, version and retain explicit ROM variants for the supported Amiga models, comparable to the per-machine strategy used by LibreTOS.
+LibreKick is not a single generic ROM image. The project will build, qualify, version and retain explicit ROM variants for the supported Amiga models, comparable to the per-machine strategy used by LibreTOS and LibreROM.
+
+**Shared source does not imply a universal ROM.** Common source code, schemas, build tooling and CI infrastructure are shared wherever practical, but every supported machine profile has its own deterministic ROM build and qualification path. A universal image may be explored as an optional convenience in the future, but it must never replace the model-specific ROMs.
 
 Each supported machine profile gets a stable identifier, deterministic build target, emulator configuration, qualification status and retained release artifact. Common code is shared wherever possible, while machine-specific bootstrap, chipset, expansion, storage and ROM-layout differences remain explicit.
+
+Every LibreKick release that claims support for a machine must publish that machine's qualified ROM image as a separate release artifact. Previously supported model-specific ROM variants remain buildable, reproducible and available when support for newer machines is added.
+
+The project-wide pipeline is therefore:
+
+**shared source → machine profile → machine-specific build → machine-specific qualification → separate retained release ROM**
 
 Initial machine families:
 
