@@ -5,10 +5,10 @@
   "cpu": "68000",
   "rom_size": 524288,
   "status": "emulator-qualified",
-  "current_milestone": "m2_47",
-  "generator": "tools/make_m2_47_rom.py",
-  "checker": "tools/check_m2_47.py",
+  "current_milestone": "m2_48",
+  "generator": "tools/make_m2_48_rom.py",
+  "checker": "tools/check_m2_48.py",
   "fs_uae_config": "configs/fs-uae/a500-current.fs-uae",
-  "artifact": "build/a500/librekick-m2_47-a500.rom",
-  "notes": "Canonical LibreKick baseline profile; M2.47 private SR/D2-D7/A2-A6 CPU context frame is emulator-qualified."
+  "artifact": "build/a500/librekick-m2_48-a500.rom",
+  "notes": "Canonical LibreKick baseline profile; M2.48 private deterministic two-task context switch is emulator-qualified."
 }
