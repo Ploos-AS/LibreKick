@@ -1,0 +1,30 @@
+name: A1000.12 static qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a1000-12-static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and check A1000.12 WCS payload and kickdisk
+        run: make check-a1000-12-kickdisk
+
+      - name: Upload A1000.12 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: librekick-a1000.12-kickdisk-static
+          path: |
+            build/a1000/librekick-a1000.12-wcs.bin
+            build/a1000/librekick-a1000.12-kickdisk.adf
+          if-no-files-found: warn
