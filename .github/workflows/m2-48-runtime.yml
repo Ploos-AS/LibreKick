@@ -1,0 +1,66 @@
+name: M2.48 runtime qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  m2-48-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and statically verify M2.48
+        run: make clean m2_48
+
+  m2-48-fs-uae:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
+      SDL_AUDIODRIVER: dummy
+      LIBREKICK_RUNTIME_ROM: build/librekick-m2_48.rom
+      LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a500-m2_48.fs-uae
+      LIBREKICK_RUNTIME_BUILD_CMD: make m2_48
+      LIBREKICK_RUNTIME_OUT: build/fs-uae/m2_48
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FS-UAE runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fs-uae xvfb x11-utils xdotool imagemagick python3-pil mesa-utils libgl1-mesa-dri
+
+      - name: Verify Xvfb software OpenGL
+        run: |
+          xvfb-run -a -s '-screen 0 1280x900x24 +extension GLX +render -noreset' bash -eu -o pipefail -c '
+            xdpyinfo >/dev/null
+            glxinfo -B | tee /tmp/librekick-m2-48-glxinfo.txt
+            glxinfo -B | grep -E "OpenGL renderer string:.*(llvmpipe|softpipe)"
+          '
+
+      - name: Run M2.48 in FS-UAE
+        run: |
+          chmod +x ci/fs-uae/run-runtime-color-gate.sh
+          xvfb-run -a -s '-screen 0 1280x900x24 +extension GLX +render -noreset' ci/fs-uae/run-runtime-color-gate.sh
+
+      - name: Upload M2.48 runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m2-48-fs-uae-qualification
+          path: |
+            build/fs-uae/m2_48/result.txt
+            build/fs-uae/m2_48/diagnostic.png
+            build/fs-uae/m2_48/fs-uae.log
+            build/fs-uae/m2_48/fs-uae-version.txt
+            build/fs-uae/m2_48/rom.txt
+            build/fs-uae/m2_48/config.txt
+            build/fs-uae/m2_48/wait-seconds.txt
+            /tmp/librekick-m2-48-glxinfo.txt
+          if-no-files-found: warn
