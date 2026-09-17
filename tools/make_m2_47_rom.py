@@ -110,20 +110,27 @@ def build():
     hand=context_handoff_code(); resume=context_resume_code(); probe=probe_code()
     for lo,hi,data in ((CONTEXT_HANDOFF_OFF,CONTEXT_HANDOFF_END,hand),(CONTEXT_RESUME_OFF,CONTEXT_RESUME_END,resume),(PROBE_OFF,PROBE_END,probe)):
         if any(b!=0xFF for b in rom[lo:hi]): raise ValueError(f'M2.47 ROM window {lo:#x}..{hi:#x} is not free')
-        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}')
+        if len(data)>hi-lo: raise ValueError(f'M2.47 code exceeds window at {lo:#x}: {len(data)} > {hi-lo}')
         rom[lo:lo+len(data)]=data
-    # M2.46 terminates its successful probe with a green COLOR00 write followed
-    # by BRA.S -2 (60fe), unlike M2.45's BRA.W success edge. Redirect that
-    # terminal edge to M2.47. BRA.S cannot reach 0x6d00, so replace the two-byte
-    # idle branch with a six-byte absolute JMP, using the still-free bytes that
-    # immediately follow the M2.46 probe.
+    # M2.46 ends its successful probe in BRA.S -2. Keep that two-byte site and
+    # redirect it to a six-byte JMP trampoline placed in free space inside the
+    # same 0x6800..0x6900 probe window. This avoids overwriting the M2.46 fail
+    # path while keeping the short branch in range.
     sig=bytes.fromhex('33fc00f000dff18060fe')
     window=rom[previous.PROBE_OFF:previous.PROBE_END]
     rel=window.rfind(sig)
     if rel<0: raise ValueError('M2.46 terminal success gate not found')
     branch=previous.PROBE_OFF+rel+8
-    if any(b!=0xFF for b in rom[branch+2:branch+6]): raise ValueError('M2.46 success gate has no room for M2.47 JMP')
-    rom[branch:branch+6]=bytes.fromhex('4ef9')+struct.pack('>I',ROM_BASE+PROBE_OFF)
+    trampoline=None
+    for candidate in range(previous.PROBE_END-6, branch+1, -2):
+        if all(b==0xFF for b in rom[candidate:candidate+6]):
+            disp=candidate-(branch+2)
+            if -128 <= disp <= 127 and disp != 0:
+                trampoline=candidate; break
+    if trampoline is None: raise ValueError('no in-range free M2.46 trampoline slot for M2.47')
+    disp=trampoline-(branch+2)
+    rom[branch:branch+2]=bytes((0x60, disp & 0xFF))
+    rom[trampoline:trampoline+6]=bytes.fromhex('4ef9')+struct.pack('>I',ROM_BASE+PROBE_OFF)
     if any(b!=0xFF for b in rom[META_OFF:META_OFF+0x100]): raise ValueError('M2.47 metadata window not free')
     rom[META_OFF:META_OFF+len(MARKER)]=MARKER; rom[META_OFF+0x60:META_OFF+0x60+len(IDENT)]=IDENT
     rom[runtime.MARKER_OFF:runtime.IDENT_OFF]=b'\xff'*(runtime.IDENT_OFF-runtime.MARKER_OFF); rom[runtime.MARKER_OFF:runtime.MARKER_OFF+len(MARKER)]=MARKER
