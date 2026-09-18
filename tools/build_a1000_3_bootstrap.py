@@ -105,6 +105,16 @@ def runtime_source(out_dir: Path) -> Path:
         raise SystemExit("A1000 initial seek_cylinder_zero call changed; update build overlay")
     text = text.replace(seek_call_old, seek_call_new, 1)
 
+    # FS-UAE's virtual floppy path is more reliable without Paula word-sync
+    # gating. We still capture a full track and locate/decode 0x4489 sector
+    # sync words in software below, so disable WORDSYNC only in the runtime
+    # overlay. The canonical hardware bootstrap retains the stricter mode.
+    adk_old = "        move.w  #0x9500,ADKCON          /* SET/CLR + WORDSYNC + MSBSYNC */\n"
+    adk_new = "        move.w  #0x8500,ADKCON          /* FS-UAE: MFM, software sync scan */\n"
+    if adk_old not in text:
+        raise SystemExit("A1000 ADKCON setup changed; update build overlay")
+    text = text.replace(adk_old, adk_new, 1)
+
     ready_old = """/* D0=0 on ready, -1 on timeout. */
 wait_ready:
         move.l  #0x00200000,d0
