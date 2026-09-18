@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the LibreKick A1000.3 68000 bootstrap loader as a 64 KiB ROM."""
+"""Build the LibreKick A1000.3 68000 bootstrap loader as a stock-size 8 KiB ROM."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 
-ROM_SIZE = 64 * 1024
+ROM_SIZE = 8 * 1024
 SOURCE = Path("src/a1000/bootstrap_a1000_3.S")
 
 
