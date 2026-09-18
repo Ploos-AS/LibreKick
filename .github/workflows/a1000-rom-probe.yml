@@ -1,0 +1,65 @@
+name: A1000 boot-ROM execution probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tools/make_a1000_probe_rom.py
+      - .github/workflows/a1000-rom-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fs-uae xvfb xdotool imagemagick python3-pil
+      - name: Build minimal 8 KiB A1000 probe ROM
+        run: |
+          python3 tools/make_a1000_probe_rom.py
+          sha256sum build/a1000/librekick-a1000-probe.rom
+      - name: Run probe
+        env:
+          LIBREKICK_RUNTIME_ROM: build/a1000/librekick-a1000-probe.rom
+          LIBREKICK_RUNTIME_CONFIG: configs/fs-uae/a1000-bootstrap-current.fs-uae
+          LIBREKICK_RUNTIME_BUILD_CMD: python3 tools/make_a1000_probe_rom.py
+          LIBREKICK_RUNTIME_OUT: build/fs-uae/a1000-rom-probe
+          LIBREKICK_RUNTIME_WAIT_SECONDS: 5
+        run: |
+          chmod +x ci/fs-uae/run-runtime-color-gate.sh
+          set +e
+          xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
+          rc=$?
+          set -e
+          cat build/fs-uae/a1000-rom-probe/result.txt || true
+          echo "--- FS-UAE log ---"
+          cat build/fs-uae/a1000-rom-probe/fs-uae.log || true
+          # The normal gate expects green. This probe deliberately emits red;
+          # prove execution from the measured screenshot instead.
+          python3 - <<'PY'
+          from PIL import Image
+          p="build/fs-uae/a1000-rom-probe/diagnostic.png"
+          im=Image.open(p).convert("RGB")
+          px=list(im.getdata())
+          red=sum(1 for r,g,b in px if r>=180 and g<=80 and b<=80)/len(px)
+          print(f"probe_red_ratio={red:.4f}")
+          if red < 0.50:
+              raise SystemExit("A1000 boot-ROM execution probe FAIL: red screen not observed")
+          print("A1000 boot-ROM execution probe PASS")
+          PY
+      - name: Upload probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a1000-boot-rom-execution-probe
+          path: |
+            build/a1000/librekick-a1000-probe.rom
+            build/fs-uae/a1000-rom-probe/
+          if-no-files-found: error
