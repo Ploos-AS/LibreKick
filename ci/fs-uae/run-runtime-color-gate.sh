@@ -69,7 +69,9 @@ if [[ "$config" == *a1000-bootstrap* ]]; then
   echo "effective_rom=$rom_abs" >> "$OUT/config.txt"
   echo "effective_floppy=$disk_abs" >> "$OUT/config.txt"
   extra_args+=("--kickstart-file=$rom_abs" "--floppy-drive-0=$disk_abs")
+  echo "effective_cli=${extra_args[*]}" >> "$OUT/config.txt"
 fi
+echo "Launching: fs-uae $config ${extra_args[*]}" | tee -a "$OUT/config.txt"
 fs-uae "$config" "${extra_args[@]}" > "$OUT/fs-uae.log" 2>&1 &
 pid=$!
 
