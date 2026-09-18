@@ -6,7 +6,7 @@ from pathlib import Path
 import struct
 import sys
 
-ROM_SIZE = 64 * 1024
+ROM_SIZE = 8 * 1024
 RESET_SP = 0x0003FFFC
 BOOT_BASE = 0x00F80000
 MARKER = b"LIBREKICK-A1000.3\0DF0-WCS-LOADER\0"
