@@ -105,6 +105,24 @@ def runtime_source(out_dir: Path) -> Path:
         raise SystemExit("A1000 initial seek_cylinder_zero call changed; update build overlay")
     text = text.replace(seek_call_old, seek_call_new, 1)
 
+    # Runtime stage sentinel: make the manifest-read call site distinct from
+    # the canonical blue stage. If CI still reports pure blue after this write,
+    # execution is not using this generated runtime overlay (or the write is
+    # never reached), which is more informative than adding deeper loader colors.
+    manifest_stage_old = """        move.w  #COLOR_MANIFEST_READ,COLOR00
+        moveq   #0,d0
+        movea.l #MANIFEST,a1
+        bsr     load_sector
+"""
+    manifest_stage_new = """        move.w  #0x0f80,COLOR00          /* FS-UAE diag: before load_sector */
+        moveq   #0,d0
+        movea.l #MANIFEST,a1
+        bsr     load_sector
+"""
+    if manifest_stage_old not in text:
+        raise SystemExit("A1000 manifest call site changed; update build overlay")
+    text = text.replace(manifest_stage_old, manifest_stage_new, 1)
+
     # FS-UAE's virtual floppy path is more reliable without Paula word-sync
     # gating. We still capture a full track and locate/decode 0x4489 sector
     # sync words in software below, so disable WORDSYNC only in the runtime
