@@ -231,6 +231,7 @@ step_delay:
  * Returns D0=0 on success, -1 after bounded retries.
  */
 load_sector:
+        move.w  #0x044f,COLOR00          /* diag: entered load_sector */
         movem.l d1-d7/a0/a2-a5,-(sp)
         movea.l a1,a5
         move.b  #3,STATE_RETRY
@@ -240,6 +241,7 @@ load_sector:
         move.l  d2,d4
         swap    d4                      /* d4.w = sector */
         andi.l  #0x0000ffff,d2          /* d2.w = track */
+        move.w  #0x04ff,COLOR00          /* diag: track/sector calculated */
 
         cmp.b   STATE_TRACK,d2
         beq     decode_cached
@@ -252,6 +254,7 @@ load_sector:
 side_one:
         bclr    #2,CIAB_PRB
 side_done:
+        move.w  #0x0ff4,COLOR00          /* diag: side selected */
         /* Sequential loader: move inward until target cylinder is reached. */
         move.w  d2,d1
         lsr.w   #1,d1
@@ -266,9 +269,11 @@ seek_inward_loop:
         move.b  d3,STATE_CYL
         bra.s   seek_inward_loop
 seek_done:
+        move.w  #0x0f84,COLOR00          /* diag: seek complete, checking ready */
         bsr     wait_ready
         tst.l   d0
         bne     load_fail_final
+        move.w  #0x08ff,COLOR00          /* diag: ready passed, entering DMA */
 
 read_retry:
         movea.l a5,a1
