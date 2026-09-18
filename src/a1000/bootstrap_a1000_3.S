@@ -287,6 +287,7 @@ read_retry:
         move.w  #0x8210,DMACON          /* SET/CLR + DMA master + disk DMA */
         move.w  #0x9900,DSKLEN          /* DMAEN + 0x1900 words */
         move.w  #0x9900,DSKLEN          /* second write starts disk DMA */
+        move.w  #0x004f,COLOR00          /* diag: DMA armed/waiting DSKBLK */
 
         move.l  #0x00a00000,d1
 wait_dma:
@@ -297,9 +298,11 @@ wait_dma:
         bra     retry_sector
 dma_done:
         move.w  #0x4000,DSKLEN
+        move.w  #0x04f0,COLOR00          /* diag: DSKBLK observed */
         move.b  d2,STATE_TRACK
 
 decode_cached:
+        move.w  #0x0f4f,COLOR00          /* diag: scanning/decoding MFM */
         movea.l a5,a1
         movea.l #MFM_BUFFER,a4
         lea     MFM_BYTES-SECTOR_MFM(a4),a2
@@ -345,6 +348,7 @@ copy_data_long:
         rts
 
 retry_sector:
+        move.w  #0x0f44,COLOR00          /* diag: MFM sector/checksum retry */
         move.w  #0x4000,DSKLEN
         movea.l a5,a1
         subq.b  #1,STATE_RETRY
