@@ -30,7 +30,32 @@ jobs:
           LIBREKICK_RUNTIME_WAIT_SECONDS: 20
         run: |
           chmod +x ci/fs-uae/run-runtime-color-gate.sh
+          make check-a1000-loader
+          echo "=== A1000 runtime identity ==="
+          pwd
+          realpath "$LIBREKICK_RUNTIME_ROM"
+          realpath "$LIBREKICK_RUNTIME_CONFIG"
+          sha256sum "$LIBREKICK_RUNTIME_ROM" build/a1000/librekick-a1000.12-kickdisk.adf
+          echo "--- effective FS-UAE config ---"
+          cat "$LIBREKICK_RUNTIME_CONFIG"
+          echo "--- runtime ROM probe bytes ---"
+          python3 - <<'PY'
+          from pathlib import Path
+          rom = Path("build/a1000/librekick-a1000.3-bootstrap.rom").read_bytes()
+          probes = {
+              "canonical-blue": bytes.fromhex("33fc000f00dff180"),
+              "runtime-orange": bytes.fromhex("33fc0f8000dff180"),
+              "load-sector-entry": bytes.fromhex("33fc044f00dff180"),
+          }
+          for name, needle in probes.items():
+              hits = [i for i in range(len(rom)) if rom.startswith(needle, i)]
+              print(f"{name}: {hits}")
+          if not any(rom.startswith(probes["runtime-orange"], i) for i in range(len(rom))):
+              raise SystemExit("runtime manifest-call probe missing from built ROM")
+          PY
           xvfb-run -a -s '-screen 0 1280x900x24' ci/fs-uae/run-runtime-color-gate.sh
+          echo "--- FS-UAE ROM/config evidence ---"
+          grep -Ei 'kickstart|rom|config|floppy|adf' build/fs-uae/a1000-bootstrap/fs-uae.log || true
 
       - name: Upload A1000 bootstrap runtime evidence
         if: always()
