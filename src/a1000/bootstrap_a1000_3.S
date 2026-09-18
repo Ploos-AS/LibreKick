@@ -385,5 +385,6 @@ bootstrap_marker:
         .ascii  "LIBREKICK-A1000.3\0DF0-WCS-LOADER\0"
         .ascii  "DIAG:YEL=BOOT,ORG=READY,CYN=SEEK,BLU=MANIFEST,MAG=CHECK,VIO=PAYLOAD,WHT=HANDOFF,GRN=WCS\0"
 
-        /* A1000 bootstrap container is retained as exactly 64 KiB. */
-        .org    0x10000,0xff
+        /* Stock A1000 boot ROM is 8 KiB. UAE-family emulators detect the
+         * A1000 bootstrap architecture from this ROM size. */
+        .org    0x2000,0xff
