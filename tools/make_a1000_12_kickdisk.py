@@ -70,7 +70,7 @@ def task_b_code():
         c+=w(0x2048+r)+bytes.fromhex('b1fc')+l(B_A[r]); fails.append(branch(c,0x6600))
     c+=ml(B_MAGIC,B_SEEN)
     c+=imm_a(0,TASK_A)+jsr(WCS_BASE+SWITCH_OFF)
-    bad=len(c); c+=mw(0x000f,COLOR00)+bytes.fromhex('60fe')
+    bad=len(c); c+=mw(0x0f00,COLOR00)+bytes.fromhex('60fe')
     for p in fails: patch(c,p,bad)
     return bytes(c)
 
@@ -94,7 +94,7 @@ def runtime_code():
     for r in A_REGS:
         c+=w(0x2048+r)+bytes.fromhex('b1fc')+l(A_A[r]); fails.append(branch(c,0x6600))
     c+=mw(0x00f0,COLOR00); good=branch(c,0x6000)
-    bad=len(c); c+=mw(0x000f,COLOR00); idle=len(c); c+=bytes.fromhex('60fe')
+    bad=len(c); c+=mw(0x0f00,COLOR00); idle=len(c); c+=bytes.fromhex('60fe')
     for p in fails: patch(c,p,bad)
     patch(c,good,idle)
     return bytes(c)
