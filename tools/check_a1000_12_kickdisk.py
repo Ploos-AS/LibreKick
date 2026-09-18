@@ -42,7 +42,7 @@ def main():
         assert struct.pack('>I',b.A_A[r]) in code
         assert struct.pack('>I',b.B_A[r]) in b.prepared_frame(b.WCS_BASE+b.TASK_B_ENTRY_OFF,b.B_D,b.B_A)
     assert bytes.fromhex('33fc00f000dff180') in code
-    assert bytes.fromhex('33fc000f00dff180') in code
+    assert bytes.fromhex('33fc0f0000dff180') in code
     print(f'A1000.12 static check PASS: {dp} ({len(disk)} bytes)')
     print(f'WCS payload={len(payload)} bytes load=${load_addr:08x} entry=${entry_pc:08x}')
     print(f'shared_exec=ExecBase@${EXEC_BASE:08x} version={EXEC_VERSION}.{b.REVISION}')
