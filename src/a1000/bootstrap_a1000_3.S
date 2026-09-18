@@ -274,14 +274,19 @@ read_retry:
         movea.l a5,a1
         movea.l #MFM_BUFFER,a4
 
-        move.l  a4,DSKPTH
-        move.w  #0x8210,DMACON          /* set DMA master + disk DMA */
-        move.w  #0x0002,INTREQ          /* clear DSKBLK */
+        /* Program Paula in the documented order: stop any previous disk
+         * DMA, clear DSKBLK, select word-sync MFM mode, then arm DMA.
+         * DSKLEN's length field is 14 bits; 0x1900 words therefore becomes
+         * 0x9900 when DMAEN is set.  The second write starts disk DMA. */
+        move.w  #0x4000,DSKLEN          /* stop/clear previous disk DMA */
+        move.w  #0x0002,INTREQ          /* clear pending DSKBLK */
         move.w  #0x7f00,ADKCON          /* clear disk control bits */
-        move.w  #0x9500,ADKCON          /* MFM + word sync */
+        move.w  #0x9500,ADKCON          /* SET/CLR + WORDSYNC + MSBSYNC */
         move.w  #0x4489,DSKSYNC
-        move.w  #0x9900,DSKLEN
-        move.w  #0x9900,DSKLEN          /* disk DMA requires double write */
+        move.l  a4,DSKPTH
+        move.w  #0x8210,DMACON          /* SET/CLR + DMA master + disk DMA */
+        move.w  #0x9900,DSKLEN          /* DMAEN + 0x1900 words */
+        move.w  #0x9900,DSKLEN          /* second write starts disk DMA */
 
         move.l  #0x00a00000,d1
 wait_dma:
