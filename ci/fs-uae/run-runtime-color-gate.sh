@@ -57,7 +57,20 @@ trap cleanup EXIT INT TERM
 # irrelevant to the color-based runtime gate, so disable it explicitly.  This
 # avoids FS-UAE stalling during audio backend initialization before SDL creates
 # the emulator window.
-fs-uae "$config" --uae-sound-output=none > "$OUT/fs-uae.log" 2>&1 &
+# Pass ROM/floppy paths explicitly as absolute paths. FS-UAE resolves paths
+# in config files according to its own config/search rules, which can differ
+# from the repository-relative paths used by our retained configs.
+extra_args=(--uae-sound-output=none)
+if [[ "$config" == *a1000-bootstrap* ]]; then
+  rom_abs=$(realpath "$rom")
+  disk_rel=$(awk -F' *= *' '$1 == "floppy_drive_0" {print $2; exit}' "$config")
+  disk_base=$(dirname "$(realpath "$config")")
+  disk_abs=$(realpath "$disk_base/$disk_rel")
+  echo "effective_rom=$rom_abs" >> "$OUT/config.txt"
+  echo "effective_floppy=$disk_abs" >> "$OUT/config.txt"
+  extra_args+=("--kickstart-file=$rom_abs" "--floppy-drive-0=$disk_abs")
+fi
+fs-uae "$config" "${extra_args[@]}" > "$OUT/fs-uae.log" 2>&1 &
 pid=$!
 
 wid=""
