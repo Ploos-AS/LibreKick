@@ -65,7 +65,16 @@ def runtime_source(out_dir: Path) -> Path:
         move.w  #COLOR_SEEK_ZERO,COLOR00
 """
     ready_call_new = """        move.w  #COLOR_WAIT_READY,COLOR00
-        /* FS-UAE runtime: skip the initial /RDY subroutine entirely. */
+        /* FS-UAE runtime: /RDY is not authoritative, but the emulated
+         * drive still needs deterministic motor spin-up time before the
+         * first disk DMA.  Without this delay CI can remain in the blue
+         * manifest-read stage because no MFM words arrive yet. */
+        move.w  #10,d4
+0:
+        move.w  #0xffff,d5
+9:
+        dbf     d5,9b
+        dbf     d4,0b
         moveq   #0,d0
 
         move.w  #COLOR_SEEK_ZERO,COLOR00
