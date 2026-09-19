@@ -43,12 +43,10 @@ def switch_code():
     q+=bytes.fromhex('40e7')
     for r in D_REGS: q+=push_d(r)
     for r in A_REGS: q+=push_a(r)
-    q+=bytes.fromhex('227900000004')             # MOVEA.L $4,A1
-    q+=bytes.fromhex('22690114')                 # MOVEA.L ThisTask(A1),A1
-    q+=bytes.fromhex('234f0036')                 # MOVE.L A7,tc_SPReg(A1)
-    q+=bytes.fromhex('227900000004')             # MOVEA.L $4,A1
-    q+=bytes.fromhex('21400114')                 # MOVE.L A0,ThisTask(A1)
-    q+=bytes.fromhex('2e680036')                 # MOVEA.L tc_SPReg(A0),A7
+    q+=bytes.fromhex('2279')+l(EXEC_BASE+THIS_TASK_OFF) # MOVEA.L ThisTask,A1
+    q+=bytes.fromhex('234f')+w(TC_SPREG_OFF)     # MOVE.L A7,tc_SPReg(A1)
+    q+=bytes.fromhex('23c8')+l(EXEC_BASE+THIS_TASK_OFF) # MOVE.L A0,ThisTask
+    q+=bytes.fromhex('2e68')+w(TC_SPREG_OFF)     # MOVEA.L tc_SPReg(A0),A7
     for r in reversed(A_REGS): q+=pop_a(r)
     for r in reversed(D_REGS): q+=pop_d(r)
     q+=bytes.fromhex('46df4e75')                 # MOVE (A7)+,SR ; RTS
