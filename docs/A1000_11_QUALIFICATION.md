@@ -1,6 +1,6 @@
 # A1000.11 Qualification
 
-Status: **EMULATOR QUALIFIED / PASS**
+Status: **HISTORICAL STATIC/IMPLEMENTATION RECORD — dedicated stock-A1000 runtime qualification not established**
 
 A1000.11 extends the stock-A1000 WCS path with the first private defined CPU-context frame on top of the already-qualified task-pointer and task-stack handoff primitives.
 
@@ -12,7 +12,7 @@ A1000.11 extends the stock-A1000 WCS path with the first private defined CPU-con
 - Retained payload: `build/a1000/librekick-a1000.11-wcs.bin`
 - Retained kickdisk: `build/a1000/librekick-a1000.11-kickdisk.adf`
 
-The A1000 runtime workflow explicitly boots the A1000.3 DF0 loader with the A1000.11 private CPU-context WCS payload and retains both the WCS payload and kickdisk as runtime evidence.
+A1000.11 implemented the private CPU-context WCS payload on top of the A1000.3 DF0-loader architecture. The historical evidence retained below is useful implementation evidence, but it does not establish that the dedicated stock-A1000 bootstrap/WCS runtime workflow executed A1000.11 successfully.
 
 ## CPU-context slice
 
@@ -26,33 +26,17 @@ This builds on the existing private task identity and stack-handoff machinery. T
 
 This is intentionally an internal LibreKick ABI slice. It is a stepping stone toward broader Exec-compatible task switching, not a claim that the public Exec scheduler ABI is implemented.
 
-## GitHub Actions qualification
+## Historical GitHub Actions evidence
 
-The qualified revision completed the GitHub-hosted FS-UAE runtime gate successfully:
+The earlier version of this document incorrectly treated generic FS-UAE runtime run `35135718961` (job `104927462285`, artifact `10463375736`) as dedicated A1000.11 qualification evidence. That run belongs to the generic 512 KiB ROM runtime path and therefore cannot prove execution of the stock-A1000 bootstrap → Kickdisk → WCS path.
 
-- Workflow: `FS-UAE runtime qualification`
-- Run ID: `35135718961`
-- Run number: `350`
-- Job: `fs-uae-runtime`
-- Job ID: `104927462285`
-- Runner: Ubuntu 24.04
-- Result: `success`
+A dedicated A1000.11 runtime PASS has not been established from the retained evidence. Consequently A1000.11 should not independently be described as emulator-qualified.
 
-The runtime job completed all relevant stages successfully, including software OpenGL/Xvfb setup, execution of the current LibreKick ROM in FS-UAE, and upload of runtime evidence.
-
-Runtime evidence artifact:
-
-- Artifact ID: `10463375736`
-- Name: `fs-uae-runtime-qualification`
-- Size: `10527` bytes
-- Digest: `sha256:68e50b025f71e8b804488bd683325c7d2bfa80f9c01f0f5b6b08a96d5cc68c06`
-- Created: `2026-09-16T18:45:47Z`
-
-The other workflows triggered for the qualified HEAD also completed successfully, including static qualification.
+This historical evidence gap does not affect the later A1000.12 qualification: A1000.12 was independently qualified through the dedicated stock-A1000 bootstrap runtime workflow, including the 8 KiB bootstrap ROM, DF0 Kickdisk, 256 KiB WCS load and terminal green runtime gate. See `docs/A1000_12_QUALIFICATION.md`.
 
 ## Scope
 
-A1000.11 qualifies the private CPU-context-frame mechanism under FS-UAE on the stock-A1000 WCS path. It does **not** claim:
+A1000.11 records the private CPU-context-frame implementation intended for the stock-A1000 WCS path; dedicated runtime qualification is not claimed. It does **not** claim:
 
 - a public Exec `Switch`, `Dispatch`, `Schedule`, or `Reschedule` implementation;
 - public Exec negative-vector compatibility for the new context primitive;
