@@ -39,15 +39,16 @@ The M2.46 runtime probe performs a cooperative handoff and a return handoff, val
 
 ## GitHub Actions qualification
 
-All six workflows associated with the qualified HEAD completed successfully.
+The M2.46 qualification set completed successfully on the qualified source. The exact profile-matrix run ID was not retained in the original qualification notes, so this document does not invent one.
 
 Key runtime evidence:
 
 - Workflow: `FS-UAE runtime qualification`
-- Run: `35098571001`
+- Run: `35133689640`
 - Run number: `345`
+- Job: `104920630064`
 - Result: `success`
-- Profile runtime matrix: run `35098570967`, run number `156`, `success`
+- Profile runtime matrix: run number `156`, `success` (exact run ID was not retained in the qualification notes)
 - Runtime artifact: `10463075585`
 - Artifact size: `10529` bytes
 - Artifact digest: `sha256:30426bbd4640423d73815193dd8f2797e44cfe7722ca4353a79d8fe69291563b`
