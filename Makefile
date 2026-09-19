@@ -9,7 +9,7 @@ A500_PROFILE_ROM := $(BUILD_DIR)/a500/librekick-m2_47-a500.rom
 A500PLUS_PROFILE_ROM := $(BUILD_DIR)/a500plus/librekick-m2_47-a500plus.rom
 A600_PROFILE_ROM := $(BUILD_DIR)/a600/librekick-m2_47-a600.rom
 
-.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_47 m2_47 qualify-m2_48 m2_48 a1000-bootstrap check-a1000-bootstrap qualify-a1000-bootstrap a1000-kickdisk check-a1000-kickdisk a1000-12-kickdisk check-a1000-12-kickdisk a1000-loader check-a1000-loader qualify-a1000-loader profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
+.PHONY: all check clean m0 m1 m2 qualify-m1 qualify-m2 qualify-m2_47 m2_47 qualify-m2_48 m2_48 qualify-m2_49 m2_49 a1000-bootstrap check-a1000-bootstrap qualify-a1000-bootstrap a1000-kickdisk check-a1000-kickdisk a1000-12-kickdisk check-a1000-12-kickdisk a1000-loader check-a1000-loader qualify-a1000-loader profile-a500 qualify-profile-a500 profile-a500plus qualify-profile-a500plus profile-a600 qualify-profile-a600
 
 all: $(ROM)
 $(ROM): tools/make_m2_47_rom.py
@@ -53,6 +53,12 @@ m2_48:
 	mkdir -p $(BUILD_DIR)
 	$(PYTHON) tools/make_m2_48_rom.py $(BUILD_DIR)/librekick-m2_48.rom
 	$(PYTHON) tools/check_m2_48.py $(BUILD_DIR)/librekick-m2_48.rom
+qualify-m2_49: m2_49
+	fs-uae configs/fs-uae/a500-m2_49.fs-uae
+m2_49:
+	mkdir -p $(BUILD_DIR)
+	$(PYTHON) tools/make_m2_49_rom.py $(BUILD_DIR)/librekick-m2_49.rom
+	$(PYTHON) tools/check_m2_49.py $(BUILD_DIR)/librekick-m2_49.rom
 profile-a500:
 	$(PYTHON) tools/build_profile.py a500
 qualify-profile-a500: profile-a500
