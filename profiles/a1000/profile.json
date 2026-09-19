@@ -3,10 +3,10 @@
   "model": "Amiga 1000",
   "family": "OCS",
   "cpu": "68000",
-  "status": "buildable",
+  "status": "emulator-qualified",
   "boot_architecture": "bootstrap-rom-plus-256k-wcs",
-  "current_milestone": "a1000.3",
-  "bootstrap_rom_size": 65536,
+  "current_milestone": "a1000.12",
+  "bootstrap_rom_size": 8192,
   "bootstrap_generator": "tools/build_a1000_3_bootstrap.py",
   "bootstrap_checker": "tools/check_a1000_3_bootstrap.py",
   "bootstrap_source": "src/a1000/bootstrap_a1000_3.S",
@@ -16,8 +16,8 @@
   "wcs_payload_size": 262144,
   "wcs_load_address": "0x00fc0000",
   "wcs_entry_pc": "0x00fc0008",
-  "wcs_payload": "build/a1000/librekick-a1000.2-wcs.bin",
-  "kickstart_disk_artifact": "build/a1000/librekick-a1000.2-kickdisk.adf",
+  "wcs_payload": "build/a1000/librekick-a1000.12-wcs.bin",
+  "kickstart_disk_artifact": "build/a1000/librekick-a1000.12-kickdisk.adf",
   "kickdisk_format": "librekick-private-bootstrap-container-v2",
   "qualification_evidence": {
     "shared_512k_experiment_run": 34831299390,
@@ -26,8 +26,11 @@
     "bootstrap_runtime_job": 103970943575,
     "bootstrap_runtime_artifact": 10346986459,
     "bootstrap_runtime_artifact_sha256": "a7bdca959c3e81eda751a301710f8abc1e1b4613955a4e5f119b12cc33619dfc",
-    "bootstrap_runtime_result": "PASS: A1000.1 bootstrap executes from $F80000 in FS-UAE and reaches the green diagnostic gate"
+    "bootstrap_runtime_result": "PASS: A1000.1 bootstrap executes from $F80000 in FS-UAE and reaches the green diagnostic gate",
+    "a1000_12_runtime_run": 35435933159,
+    "a1000_12_runtime_artifact": 10582224606,
+    "a1000_12_runtime_result": "PASS: stock A1000 bootstrap loads the 256 KiB WCS payload and A1000.12 completes the private deterministic A→B→A context switch with a green FS-UAE diagnostic gate"
   },
   "strategy_doc": "docs/A1000_BOOT_STRATEGY.md",
-  "notes": "Stock-style A1000 profile. A1000.3 implements a 68000 DF0 loader using Paula disk DMA and standard Amiga MFM sector decoding. It validates the LibreKick-private sector-0 manifest, copies sectors 1..512 to the 256 KiB WCS window, switches mapping from a chip-RAM trampoline, and jumps to $FC0008. Runtime qualification is pending; do not mark emulator-qualified until the dedicated FS-UAE gate passes."
+  "notes": "Stock-style A1000 profile. An 8 KiB bootstrap ROM loads the retained 256 KiB A1000.12 WCS payload from DF0 into $FC0000 and transfers control to $FC0008. Dedicated FS-UAE qualification passes through the complete bootstrap, kickdisk, WCS and private A→B→A context-switch path. Hardware qualification remains separate."
 }
