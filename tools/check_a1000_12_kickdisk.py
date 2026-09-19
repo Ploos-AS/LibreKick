@@ -32,7 +32,7 @@ def main():
     assert EXEC_VERSION==40 and b.REVISION==12
     assert b.TASK_A!=b.TASK_B and b.D_REGS==list(range(2,8)) and b.A_REGS==list(range(2,7))
     assert bytes.fromhex('40e7') in sw and bytes.fromhex('46df') in sw
-    assert struct.pack('>H',TC_SPREG_OFF) in sw and struct.pack('>H',THIS_TASK_OFF) in sw
+    assert struct.pack('>H',TC_SPREG_OFF) in sw and struct.pack('>I',EXEC_BASE+THIS_TASK_OFF) in sw
     assert struct.pack('>I',b.TASK_A) in code and struct.pack('>I',b.TASK_B) in code
     assert struct.pack('>I',b.B_MAGIC) in tb and struct.pack('>I',b.B_MAGIC) in code
     for r in b.D_REGS:
